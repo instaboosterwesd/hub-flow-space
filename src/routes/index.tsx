@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
-import { playBetClick, playCashout, playCrash, playTakeoff, startEngineHum, startMusic, stopEngineHum, stopMusic } from "../lib/aviator-sound";
+import { startMusic, stopMusic } from "../lib/aviator-sound";
 import { crashConfig, watchCrashConfig } from "../lib/crash-config";
 
 import loadingAsset from "../assets/aviator/loading.png";
@@ -574,7 +574,6 @@ function BetPanel({
       if (waitingForNextRound) {
         setWaitingForNextRound(false);
       } else {
-        playBetClick();
         setPlaced((value) => !value);
       }
       return;
@@ -584,7 +583,6 @@ function BetPanel({
         amount: Number((amount * multiplier).toFixed(2)),
         multiplier: Number(multiplier.toFixed(2)),
       };
-      playCashout();
       setCashoutResult(notice);
       onCashOut(notice);
       return;
@@ -894,33 +892,16 @@ function AviatorGame() {
     setCopied(false);
   }, [round]);
 
-  // Background music: uploaded track loops while the Music toggle is on.
+  // Audio: a single uploaded track loops while either the Music or Sound toggle is on.
   useEffect(() => {
-    if (musicOn) {
+    if (musicOn || soundOn) {
       startMusic();
     } else {
       stopMusic();
     }
-  }, [musicOn]);
+  }, [musicOn, soundOn]);
 
-  // Sound effects: engine hum while flying, takeoff/crash stingers.
-  useEffect(() => {
-    if (!soundOn) {
-      stopEngineHum();
-      return;
-    }
-    if (phase === "flying") {
-      playTakeoff();
-      startEngineHum();
-    } else if (phase === "crashed") {
-      stopEngineHum();
-      playCrash();
-    } else {
-      stopEngineHum();
-    }
-  }, [phase, soundOn]);
-
-  useEffect(() => () => { stopEngineHum(); stopMusic(); }, []);
+  useEffect(() => () => { stopMusic(); }, []);
 
   useEffect(() => {
     if (!roundDetailsOpen) return;
