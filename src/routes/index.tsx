@@ -892,33 +892,16 @@ function AviatorGame() {
     setCopied(false);
   }, [round]);
 
-  // Background music: uploaded track loops while the Music toggle is on.
+  // Audio: a single uploaded track loops while either the Music or Sound toggle is on.
   useEffect(() => {
-    if (musicOn) {
+    if (musicOn || soundOn) {
       startMusic();
     } else {
       stopMusic();
     }
-  }, [musicOn]);
+  }, [musicOn, soundOn]);
 
-  // Sound effects: engine hum while flying, takeoff/crash stingers.
-  useEffect(() => {
-    if (!soundOn) {
-      stopEngineHum();
-      return;
-    }
-    if (phase === "flying") {
-      playTakeoff();
-      startEngineHum();
-    } else if (phase === "crashed") {
-      stopEngineHum();
-      playCrash();
-    } else {
-      stopEngineHum();
-    }
-  }, [phase, soundOn]);
-
-  useEffect(() => () => { stopEngineHum(); stopMusic(); }, []);
+  useEffect(() => () => { stopMusic(); }, []);
 
   useEffect(() => {
     if (!roundDetailsOpen) return;
