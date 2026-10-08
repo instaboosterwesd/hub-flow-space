@@ -1,7 +1,7 @@
 // Lightweight WebAudio sound engine for the Aviator game.
 // Effects are synthesized; background music uses the uploaded MP3 asset.
 
-import bgMusicAsset from "../assets/bg-music.mp3.asset.json";
+import bgMusicUrl from "../assets/bg-music.mp3";
 
 let ctx: AudioContext | null = null;
 
@@ -11,7 +11,7 @@ let musicEl: HTMLAudioElement | null = null;
 export function startMusic(): void {
   if (typeof window === "undefined") return;
   if (!musicEl) {
-    musicEl = new Audio(bgMusicAsset.url);
+    musicEl = new Audio(bgMusicUrl);
     musicEl.loop = true;
     musicEl.volume = 0.5;
   }
