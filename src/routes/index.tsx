@@ -885,6 +885,26 @@ function AviatorGame() {
     setCopied(false);
   }, [round]);
 
+  // Sound effects: engine hum while flying (music toggle), takeoff/crash
+  // stingers (sound toggle).
+  useEffect(() => {
+    if (!soundOn && !musicOn) {
+      stopEngineHum();
+      return;
+    }
+    if (phase === "flying") {
+      if (soundOn) playTakeoff();
+      if (musicOn) startEngineHum();
+    } else if (phase === "crashed") {
+      stopEngineHum();
+      if (soundOn) playCrash();
+    } else {
+      stopEngineHum();
+    }
+  }, [phase, soundOn, musicOn]);
+
+  useEffect(() => () => stopEngineHum(), []);
+
   useEffect(() => {
     if (!roundDetailsOpen) return;
     const closeOnOutsideTouch = (event: PointerEvent) => {
