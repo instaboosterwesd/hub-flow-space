@@ -41,6 +41,7 @@ export function playFlewAway(): void {
   if (!flewAwayEl) {
     flewAwayEl = new Audio(flewAwayUrl);
     flewAwayEl.volume = 0.8;
+    flewAwayEl.playbackRate = 1.6;
   }
   flewAwayEl.currentTime = 0;
   void flewAwayEl.play().catch(() => { /* blocked until user interaction */ });
