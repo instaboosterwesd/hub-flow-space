@@ -659,7 +659,8 @@ function BetPanel({
               onClick={() => {
                 const next = !autoCashOut;
                 setAutoCashOut(next);
-                announceAuto(next ? `Auto cash out enabled at ${autoTarget.toFixed(1)}x.` : "Auto cash out disabled.");
+                if (next) announceAuto(`Auto cash out enabled at ${autoTarget.toFixed(1)}x.`);
+                else setAutoFeedback("");
               }}
             ><i /></button>
             <strong>
