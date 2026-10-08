@@ -386,12 +386,12 @@ function LoadingScreen({ progress }: { progress: number }) {
   return (
     <div className="aviator-loader" aria-label="Loading game">
       <div className="loader-center">
-        <img src={loadingAsset.url} alt="Aviator" className="loader-logo" />
+        <img src={loadingAsset} alt="Aviator" className="loader-logo" />
         <div className="loader-progress-row">
           <div className="loader-track"><div className="loader-fill" style={{ width: `${progress}%` }} /></div>
           <span>{progress}%</span>
         </div>
-        <p><img src={wordmarkAsset.url} alt="Aviator" /> is a 100% provably fair game.</p>
+        <p><img src={wordmarkAsset} alt="Aviator" /> is a 100% provably fair game.</p>
         <small>If you find that the game has modified the game results and submit relevant evidence to customer service, you can receive a maximum compensation of 100000 USDT</small>
       </div>
     </div>
@@ -958,7 +958,7 @@ function AviatorGame() {
   return (
     <main className="aviator-shell">
       <header className="topbar">
-        <img src={wordmarkAsset.url} alt="Aviator" className="brand" />
+        <img src={wordmarkAsset} alt="Aviator" className="brand" />
         <button className="help" onClick={() => setHelpOpen(true)}><HelpCircle /> <span>How to play?</span></button>
         <div className="balance"><strong>4,077</strong> INR</div>
         <button className="menu-button" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button>
@@ -970,7 +970,7 @@ function AviatorGame() {
                 aria-label="Choose game avatar"
                 onClick={() => setAvatarPickerOpen(true)}
               >
-                <img src={avatars[profileAvatarIndex]?.url ?? avatar1.url} alt="" />
+                <img src={avatars[profileAvatarIndex] ?? avatar1} alt="" />
               </button>
               <strong>11020000102087</strong>
               <button className="change-avatar" onClick={() => setAvatarPickerOpen(true)}><UserRound /><span>Change<br />Avatar</span></button>
@@ -1034,7 +1034,7 @@ function AviatorGame() {
               const tone = bet.cashAt === null ? "blue" : multiplierTone(bet.cashAt);
               return (
                 <div className={cashed ? `bet-row cashed ${tone}` : "bet-row"} key={bet.id}>
-                  <span className="bettor"><img src={avatars[bet.avatar]?.url ?? avatar1.url} alt="" />{bet.name}</span>
+                  <span className="bettor"><img src={avatars[bet.avatar] ?? avatar1} alt="" />{bet.name}</span>
                   <strong>{money(bet.amount)}</strong>
                   {cashed && bet.cashAt !== null && <span className={`tiny-multi ${tone}`}>{bet.cashAt.toFixed(2)}x</span>}
                   {cashed && bet.cashAt !== null && <em className="cash-out">{money(bet.amount * bet.cashAt)}</em>}
@@ -1120,11 +1120,11 @@ function AviatorGame() {
             </svg>
             {phase === "intro" ? (
               <div className="round-intro gap-[0px]" aria-label="Official partners">
-                <img className="partners-logo" src={partnersLogoAsset.url} alt="UFC and Aviator official partners" />
+                <img className="partners-logo" src={partnersLogoAsset} alt="UFC and Aviator official partners" />
                 <div className="round-progress" aria-label="Next flight loading" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(roundProgress * 100)}>
                   <div className="round-progress-fill" />
                 </div>
-                <img className="official-badge" src={officialAsset.url} alt="Spribe official game" />
+                <img className="official-badge" src={officialAsset} alt="Spribe official game" />
               </div>
             ) : (
               <>
