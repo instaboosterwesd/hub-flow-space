@@ -183,9 +183,12 @@ function AdminPage() {
             </p>
           )}
 
-          <button className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-primary-foreground shadow transition active:scale-[0.98]">
+          <button
+            disabled={loggingIn}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-primary-foreground shadow transition active:scale-[0.98] disabled:opacity-60"
+          >
             <LogOut size={18} className="rotate-180" />
-            Login
+            {loggingIn ? "Checking..." : "Login"}
           </button>
         </form>
       </div>
