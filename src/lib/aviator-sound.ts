@@ -11,7 +11,7 @@ let musicEl: HTMLAudioElement | null = null;
 export function startMusic(): void {
   if (typeof window === "undefined") return;
   if (!musicEl) {
-    musicEl = new Audio(bgMusicAsset.url);
+    musicEl = new Audio(bgMusicUrl);
     musicEl.loop = true;
     musicEl.volume = 0.5;
   }
