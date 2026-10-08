@@ -114,10 +114,10 @@ function AdminPage() {
         }).catch(() => {});
         setAuthed(true);
       } else {
-        setErr("Galat username ya password");
+        setErr("Invalid username or password");
       }
     } catch {
-      setErr("Server se connect nahi ho paya, dobara try karein");
+      setErr("Could not connect to the server, please try again");
     } finally {
       setLoggingIn(false);
     }
@@ -230,7 +230,7 @@ function AdminPage() {
           {logs.length === 0 ? (
             <p className="flex items-center gap-2 text-sm text-muted-foreground">
               <CircleAlert size={16} className="shrink-0" />
-              Koi record nahi
+              No records yet
             </p>
           ) : (
             <ul className="divide-y divide-border">
@@ -276,17 +276,17 @@ function CrashControl() {
   const save = async () => {
     if (cfg.mode === "manual" && (cfg.min < 1.01 || cfg.max < cfg.min)) {
       setSaved(false);
-      setMsg("Min kam se kam 1.01 aur Max, Min se bada hona chahiye");
+      setMsg("Min must be at least 1.01 and Max must be greater than or equal to Min");
       return;
     }
     setSaving(true);
     try {
       await saveCrashConfig(cfg);
-      setMsg("Save ho gaya! Agle round se lagu hoga.");
+      setMsg("Saved! It will apply from the next round.");
       setSaved(true);
     } catch {
       setSaved(false);
-      setMsg("Save nahi hua, dobara try karein");
+      setMsg("Save failed, please try again");
     } finally {
       setSaving(false);
     }
@@ -310,7 +310,7 @@ function CrashControl() {
           <div className="min-w-0">
             <p className="truncate font-medium">Auto mode</p>
             <p className="truncate text-sm text-muted-foreground">
-              {auto ? "Random crash on (1.01x–3x)" : "Aapki set ki range use hogi"}
+              {auto ? "Random crash on (1.01x–3x)" : "Your set range will be used"}
             </p>
           </div>
         </div>
@@ -356,7 +356,7 @@ function CrashControl() {
           </label>
           <p className="flex items-center gap-2 text-sm text-muted-foreground sm:col-span-2">
             <ChevronRight size={16} className="shrink-0" />
-            Plane {cfg.min}x se {cfg.max}x ke beech random crash hoga.
+            Plane will crash randomly between {cfg.min}x and {cfg.max}x.
           </p>
         </div>
       </div>
