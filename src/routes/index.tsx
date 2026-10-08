@@ -500,6 +500,7 @@ function BetPanel({
   const [mode, setMode] = useState<"Bet" | "Auto">("Bet");
   const [autoCashOut, setAutoCashOut] = useState(false);
   const [autoTarget, setAutoTarget] = useState(1.1);
+  const [targetDraft, setTargetDraft] = useState<string | null>(null);
   const [autoOpen, setAutoOpen] = useState(false);
   const [autoActive, setAutoActive] = useState(false);
   const [autoFeedback, setAutoFeedback] = useState("");
@@ -656,12 +657,7 @@ function BetPanel({
               className={autoCashOut ? "switch on" : "switch"}
               aria-pressed={autoCashOut}
               aria-label="Auto cash out"
-              onClick={() => {
-                const next = !autoCashOut;
-                setAutoCashOut(next);
-                if (next) announceAuto(`Auto cash out enabled at ${autoTarget.toFixed(1)}x.`);
-                else setAutoFeedback("");
-              }}
+              onClick={() => setAutoCashOut(!autoCashOut)}
             ><i /></button>
             <strong>
               <input
@@ -671,25 +667,20 @@ function BetPanel({
                 min="1.1"
                 max="1000"
                 step="0.1"
-                value={autoTarget}
-                onChange={(event) => setAutoTarget(clamp(Number(event.target.value) || 1.1, 1.1, 1000))}
+                value={targetDraft ?? String(autoTarget)}
+                onChange={(event) => setTargetDraft(event.target.value)}
+                onBlur={() => {
+                  setAutoTarget(clamp(Number(targetDraft) || 1.1, 1.1, 1000));
+                  setTargetDraft(null);
+                }}
               />
               <button
                 className="auto-clear"
                 aria-label="Clear auto cash out"
-                onClick={() => {
-                  setAutoCashOut(false);
-                  announceAuto("Auto cash out cleared.");
-                }}
+                onClick={() => setAutoCashOut(false)}
               >×</button>
             </strong>
           </div>
-        </div>
-      )}
-      {autoFeedback && (
-        <div className="auto-feedback" role="status" aria-live="polite">
-          <span className="auto-feedback-dot" aria-hidden="true" />
-          {autoFeedback}
         </div>
       )}
       {autoOpen && (
