@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import { playBetClick, playCashout, playCrash, playTakeoff, startEngineHum, startMusic, stopEngineHum, stopMusic } from "../lib/aviator-sound";
+import { crashConfig, watchCrashConfig } from "../lib/crash-config";
 
 import loadingAsset from "../assets/aviator/loading.png";
 import wordmarkAsset from "../assets/aviator/wordmark.svg";
@@ -76,6 +77,11 @@ const smoothStep = (value: number) => value * value * (3 - 2 * value);
 const lerp = (from: number, to: number, amount: number) => from + (to - from) * amount;
 
 function pickCrashMultiplier() {
+  if (crashConfig.mode === "manual") {
+    const lo = Math.max(1.01, Math.min(crashConfig.min, crashConfig.max));
+    const hi = Math.max(lo, crashConfig.min, crashConfig.max);
+    return Number(clamp(lo + Math.random() * (hi - lo), 1.01, maxCrashMultiplier).toFixed(2));
+  }
   const roll = Math.random();
   let multiplier: number;
 
@@ -819,6 +825,8 @@ function AviatorGame() {
     }), 34);
     return () => window.clearInterval(timer);
   }, []);
+
+  useEffect(() => watchCrashConfig(), []);
 
   useEffect(() => {
     if (!loaded) return;
