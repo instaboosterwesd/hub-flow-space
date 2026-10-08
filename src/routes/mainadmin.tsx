@@ -1,5 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import {
+  Plane,
+  LogOut,
+  ShieldCheck,
+  History,
+  SlidersHorizontal,
+  Zap,
+  User,
+  Lock,
+  Eye,
+  EyeOff,
+  Save,
+  ChevronRight,
+  Clock,
+  MonitorSmartphone,
+  CircleAlert,
+  CircleCheck,
+  Gauge,
+} from "lucide-react";
 import { fetchCrashConfig, saveCrashConfig, type CrashConfig } from "@/lib/crash-config";
 
 const FB = "https://aviator-340c0-default-rtdb.firebaseio.com";
@@ -21,10 +40,47 @@ export const Route = createFileRoute("/mainadmin")({
 
 type Log = { at: number; ua: string };
 
+/* ---------- Material 3-style building blocks ---------- */
+
+function M3Switch({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      onClick={() => onChange(!checked)}
+      className={`relative inline-flex h-8 w-[52px] shrink-0 items-center rounded-full border-2 transition-colors duration-200 ${
+        checked ? "border-primary bg-primary" : "border-border bg-muted"
+      }`}
+    >
+      <span
+        className={`inline-block transform rounded-full shadow transition-all duration-200 ${
+          checked ? "h-6 w-6 translate-x-[22px] bg-primary-foreground" : "h-4 w-4 translate-x-[4px] bg-muted-foreground"
+        }`}
+      />
+    </button>
+  );
+}
+
+function StatCard({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex min-w-0 items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-sm">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">{icon}</div>
+      <div className="min-w-0">
+        <p className="truncate text-xs text-muted-foreground">{label}</p>
+        <p className="truncate text-base font-semibold text-foreground">{value}</p>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Page ---------- */
+
 function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [u, setU] = useState("");
   const [p, setP] = useState("");
+  const [showP, setShowP] = useState(false);
   const [err, setErr] = useState("");
   const [logs, setLogs] = useState<Log[]>([]);
 
@@ -62,33 +118,122 @@ function AdminPage() {
 
   if (!authed)
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <form onSubmit={login} className="w-full max-w-sm space-y-4 rounded-xl border border-border bg-card p-6">
-          <h1 className="text-2xl font-bold text-foreground">Admin Login</h1>
-          <input className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground" placeholder="Username" value={u} onChange={(e) => setU(e.target.value)} />
-          <input type="password" className="w-full rounded-md border border-input bg-background px-3 py-2 text-foreground" placeholder="Password" value={p} onChange={(e) => setP(e.target.value)} />
-          {err && <p className="text-sm text-destructive">{err}</p>}
-          <button className="w-full rounded-md bg-primary py-2 font-semibold text-primary-foreground">Login</button>
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <form
+          onSubmit={login}
+          className="w-full max-w-sm space-y-5 rounded-3xl border border-border bg-card p-6 shadow-lg sm:p-8"
+        >
+          <div className="flex flex-col items-center gap-2 text-center">
+            <div className="grid h-16 w-16 place-items-center rounded-full bg-primary/10 text-primary">
+              <ShieldCheck size={32} />
+            </div>
+            <h1 className="text-2xl font-bold text-foreground">Admin Login</h1>
+            <p className="text-sm text-muted-foreground">Aviator control panel</p>
+          </div>
+
+          <label className="flex items-center gap-3 rounded-xl border border-input bg-background px-4 py-3 focus-within:border-primary">
+            <User size={20} className="shrink-0 text-muted-foreground" />
+            <input
+              className="w-full min-w-0 bg-transparent text-foreground outline-none"
+              placeholder="Username"
+              autoComplete="username"
+              value={u}
+              onChange={(e) => setU(e.target.value)}
+            />
+          </label>
+
+          <label className="flex items-center gap-3 rounded-xl border border-input bg-background px-4 py-3 focus-within:border-primary">
+            <Lock size={20} className="shrink-0 text-muted-foreground" />
+            <input
+              type={showP ? "text" : "password"}
+              className="w-full min-w-0 bg-transparent text-foreground outline-none"
+              placeholder="Password"
+              autoComplete="current-password"
+              value={p}
+              onChange={(e) => setP(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => setShowP((s) => !s)}
+              className="shrink-0 text-muted-foreground"
+              aria-label={showP ? "Hide password" : "Show password"}
+            >
+              {showP ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </label>
+
+          {err && (
+            <p className="flex items-center gap-2 text-sm text-destructive">
+              <CircleAlert size={16} className="shrink-0" />
+              {err}
+            </p>
+          )}
+
+          <button className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-primary-foreground shadow transition active:scale-[0.98]">
+            <LogOut size={18} className="rotate-180" />
+            Login
+          </button>
         </form>
       </div>
     );
 
   return (
-    <div className="min-h-screen bg-background p-6 text-foreground">
-      <div className="mx-auto max-w-3xl space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <button onClick={logout} className="rounded-md border border-border px-4 py-2">Logout</button>
-        </div>
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="mx-auto max-w-3xl space-y-4 p-4 pb-10 sm:space-y-6 sm:p-6">
+        {/* Header */}
+        <header className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-3xl border border-border bg-card p-4 shadow-sm">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary">
+              <Plane size={24} />
+            </div>
+            <div className="min-w-0">
+              <h1 className="truncate text-xl font-bold sm:text-2xl">Admin Dashboard</h1>
+              <p className="truncate text-sm text-muted-foreground">Aviator control panel</p>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            className="flex shrink-0 items-center gap-2 rounded-full border border-border px-4 py-2 text-sm font-semibold text-foreground transition active:scale-[0.98]"
+          >
+            <LogOut size={16} />
+            <span className="hidden sm:inline">Logout</span>
+          </button>
+        </header>
+
         <CrashControl />
-        <div className="rounded-xl border border-border bg-card p-4">
-          <h2 className="mb-3 font-semibold">Recent admin logins (Firebase)</h2>
-          {logs.length === 0 ? <p className="text-muted-foreground">Koi record nahi</p> : (
-            <ul className="space-y-1 text-sm">
-              {logs.map((l, i) => <li key={i}>{new Date(l.at).toLocaleString()}</li>)}
+
+        {/* Login history */}
+        <section className="rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-5">
+          <div className="mb-4 flex items-center gap-3">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+              <History size={20} />
+            </div>
+            <h2 className="min-w-0 truncate font-semibold">Recent admin logins</h2>
+          </div>
+          {logs.length === 0 ? (
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <CircleAlert size={16} className="shrink-0" />
+              Koi record nahi
+            </p>
+          ) : (
+            <ul className="divide-y divide-border">
+              {logs.map((l, i) => (
+                <li key={i} className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-3 py-2.5">
+                  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-muted text-muted-foreground">
+                    <Clock size={16} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium">{new Date(l.at).toLocaleString()}</p>
+                    <p className="flex items-center gap-1 truncate text-xs text-muted-foreground">
+                      <MonitorSmartphone size={12} className="shrink-0" />
+                      <span className="truncate">{l.ua || "Unknown device"}</span>
+                    </p>
+                  </div>
+                </li>
+              ))}
             </ul>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
@@ -97,39 +242,127 @@ function AdminPage() {
 function CrashControl() {
   const [cfg, setCfg] = useState<CrashConfig>({ mode: "auto", min: 1.01, max: 3 });
   const [msg, setMsg] = useState("");
+  const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
+
   useEffect(() => {
     fetchCrashConfig().then(setCfg).catch(() => {});
   }, []);
+
+  const auto = cfg.mode === "auto";
+  const setAuto = (v: boolean) => {
+    setCfg({ ...cfg, mode: v ? "auto" : "manual" });
+    setMsg("");
+    setSaved(false);
+  };
+
   const save = async () => {
     if (cfg.mode === "manual" && (cfg.min < 1.01 || cfg.max < cfg.min)) {
+      setSaved(false);
       setMsg("Min kam se kam 1.01 aur Max, Min se bada hona chahiye");
       return;
     }
-    await saveCrashConfig(cfg);
-    setMsg("Save ho gaya! Agle round se lagu hoga.");
+    setSaving(true);
+    try {
+      await saveCrashConfig(cfg);
+      setMsg("Save ho gaya! Agle round se lagu hoga.");
+      setSaved(true);
+    } catch {
+      setSaved(false);
+      setMsg("Save nahi hua, dobara try karein");
+    } finally {
+      setSaving(false);
+    }
   };
-  const btn = (active: boolean) =>
-    `flex-1 rounded-md py-2 font-semibold ${active ? "bg-primary text-primary-foreground" : "border border-border"}`;
+
   return (
-    <div className="rounded-xl border border-border bg-card p-4 space-y-4">
-      <h2 className="font-semibold">Plane Crash Control</h2>
-      <div className="flex gap-2">
-        <button className={btn(cfg.mode === "auto")} onClick={() => setCfg({ ...cfg, mode: "auto" })}>Auto (Random)</button>
-        <button className={btn(cfg.mode === "manual")} onClick={() => setCfg({ ...cfg, mode: "manual" })}>Manual Range</button>
-      </div>
-      {cfg.mode === "manual" && (
-        <div className="grid grid-cols-2 gap-3">
-          <label className="text-sm">Min (x)
-            <input type="number" step="0.01" min="1.01" value={cfg.min} onChange={(e) => setCfg({ ...cfg, min: Number(e.target.value) })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2" />
-          </label>
-          <label className="text-sm">Max (x)
-            <input type="number" step="0.01" min="1.01" value={cfg.max} onChange={(e) => setCfg({ ...cfg, max: Number(e.target.value) })} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2" />
-          </label>
-          <p className="col-span-2 text-sm text-muted-foreground">Plane {cfg.min}x se {cfg.max}x ke beech random crash hoga.</p>
+    <section className="rounded-3xl border border-border bg-card p-4 shadow-sm sm:p-5">
+      <div className="mb-4 flex items-center gap-3">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+          <SlidersHorizontal size={20} />
         </div>
+        <h2 className="min-w-0 truncate font-semibold">Plane Crash Control</h2>
+      </div>
+
+      {/* Auto / Manual switch */}
+      <div className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-background p-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/10 text-primary">
+            <Zap size={20} />
+          </div>
+          <div className="min-w-0">
+            <p className="truncate font-medium">Auto mode</p>
+            <p className="truncate text-sm text-muted-foreground">
+              {auto ? "Random crash on (1.01x–3x)" : "Aapki set ki range use hogi"}
+            </p>
+          </div>
+        </div>
+        <M3Switch checked={auto} onChange={setAuto} />
+      </div>
+
+      {/* Manual range inputs */}
+      <div
+        className={`grid overflow-hidden transition-all duration-300 ${
+          auto ? "max-h-0 opacity-0" : "mt-4 max-h-96 opacity-100"
+        }`}
+      >
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex items-center gap-3 rounded-xl border border-input bg-background px-4 py-3 focus-within:border-primary">
+            <Gauge size={20} className="shrink-0 text-muted-foreground" />
+            <span className="shrink-0 text-sm text-muted-foreground">Min (x)</span>
+            <input
+              type="number"
+              step="0.01"
+              min="1.01"
+              value={cfg.min}
+              onChange={(e) => {
+                setCfg({ ...cfg, min: Number(e.target.value) });
+                setSaved(false);
+              }}
+              className="w-full min-w-0 bg-transparent text-right text-foreground outline-none"
+            />
+          </label>
+          <label className="flex items-center gap-3 rounded-xl border border-input bg-background px-4 py-3 focus-within:border-primary">
+            <Gauge size={20} className="shrink-0 text-muted-foreground" />
+            <span className="shrink-0 text-sm text-muted-foreground">Max (x)</span>
+            <input
+              type="number"
+              step="0.01"
+              min="1.01"
+              value={cfg.max}
+              onChange={(e) => {
+                setCfg({ ...cfg, max: Number(e.target.value) });
+                setSaved(false);
+              }}
+              className="w-full min-w-0 bg-transparent text-right text-foreground outline-none"
+            />
+          </label>
+          <p className="flex items-center gap-2 text-sm text-muted-foreground sm:col-span-2">
+            <ChevronRight size={16} className="shrink-0" />
+            Plane {cfg.min}x se {cfg.max}x ke beech random crash hoga.
+          </p>
+        </div>
+      </div>
+
+      <button
+        onClick={save}
+        disabled={saving}
+        className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-primary-foreground shadow transition active:scale-[0.98] disabled:opacity-60"
+      >
+        <Save size={18} />
+        {saving ? "Saving..." : "Save"}
+      </button>
+
+      {msg && (
+        <p
+          className={`mt-3 flex items-center gap-2 text-sm ${
+            saved ? "text-green-600 dark:text-green-400" : "text-destructive"
+          }`}
+        >
+          {saved ? <CircleCheck size={16} className="shrink-0" /> : <CircleAlert size={16} className="shrink-0" />}
+          {msg}
+        </p>
       )}
-      <button onClick={save} className="w-full rounded-md bg-primary py-2 font-semibold text-primary-foreground">Save</button>
-      {msg && <p className="text-sm text-muted-foreground">{msg}</p>}
-    </div>
+    </section>
   );
 }
