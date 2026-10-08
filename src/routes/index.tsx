@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
+import { playBetClick, playCashout, playCrash, playTakeoff, startEngineHum, stopEngineHum } from "../lib/aviator-sound";
 
 import loadingAsset from "../assets/aviator/loading.png";
 import wordmarkAsset from "../assets/aviator/wordmark.svg";
@@ -567,6 +568,7 @@ function BetPanel({
       if (waitingForNextRound) {
         setWaitingForNextRound(false);
       } else {
+        playBetClick();
         setPlaced((value) => !value);
       }
       return;
@@ -576,6 +578,7 @@ function BetPanel({
         amount: Number((amount * multiplier).toFixed(2)),
         multiplier: Number(multiplier.toFixed(2)),
       };
+      playCashout();
       setCashoutResult(notice);
       onCashOut(notice);
       return;
@@ -882,6 +885,26 @@ function AviatorGame() {
     setFairDetailsOpen(false);
     setCopied(false);
   }, [round]);
+
+  // Sound effects: engine hum while flying (music toggle), takeoff/crash
+  // stingers (sound toggle).
+  useEffect(() => {
+    if (!soundOn && !musicOn) {
+      stopEngineHum();
+      return;
+    }
+    if (phase === "flying") {
+      if (soundOn) playTakeoff();
+      if (musicOn) startEngineHum();
+    } else if (phase === "crashed") {
+      stopEngineHum();
+      if (soundOn) playCrash();
+    } else {
+      stopEngineHum();
+    }
+  }, [phase, soundOn, musicOn]);
+
+  useEffect(() => () => stopEngineHum(), []);
 
   useEffect(() => {
     if (!roundDetailsOpen) return;
