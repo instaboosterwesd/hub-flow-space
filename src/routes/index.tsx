@@ -637,13 +637,6 @@ function BetPanel({
       </div>
       {mode === "Auto" && (
         <div className="auto-row">
-          <button
-            className={autoActive ? "auto-play active" : "auto-play"}
-            aria-label={autoActive ? "Edit active auto play options" : "Open auto play options"}
-            onClick={() => setAutoOpen(true)}
-          >
-            {autoActive ? "AUTO ACTIVE" : "AUTO PLAY"}
-          </button>
           <div className="auto-cashout">
             <span>Auto Cash Out</span>
             <button
