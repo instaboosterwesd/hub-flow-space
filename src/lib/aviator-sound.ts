@@ -1,9 +1,14 @@
-// Background music for the Aviator game — plays only the user's uploaded MP3 (looped).
-// No synthesized sound effects; the Music/Sound toggles control this single track.
+// Audio for the Aviator game — only the user's uploaded MP3 files.
+// bg-music loops while Music/Sound is on; start.mp3 plays at takeoff and
+// flewaway.mp3 plays when the plane crashes (only when Sound is on).
 
 import bgMusicUrl from "../assets/bg-music.mp3";
+import startUrl from "../assets/start.mp3";
+import flewAwayUrl from "../assets/flewaway.mp3";
 
 let musicEl: HTMLAudioElement | null = null;
+let startEl: HTMLAudioElement | null = null;
+let flewAwayEl: HTMLAudioElement | null = null;
 
 export function startMusic(): void {
   if (typeof window === "undefined") return;
@@ -19,4 +24,24 @@ export function stopMusic(): void {
   if (!musicEl) return;
   musicEl.pause();
   musicEl.currentTime = 0;
+}
+
+export function playStart(): void {
+  if (typeof window === "undefined") return;
+  if (!startEl) {
+    startEl = new Audio(startUrl);
+    startEl.volume = 0.8;
+  }
+  startEl.currentTime = 0;
+  void startEl.play().catch(() => { /* blocked until user interaction */ });
+}
+
+export function playFlewAway(): void {
+  if (typeof window === "undefined") return;
+  if (!flewAwayEl) {
+    flewAwayEl = new Audio(flewAwayUrl);
+    flewAwayEl.volume = 0.8;
+  }
+  flewAwayEl.currentTime = 0;
+  void flewAwayEl.play().catch(() => { /* blocked until user interaction */ });
 }

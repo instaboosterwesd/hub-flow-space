@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
-import { startMusic, stopMusic } from "../lib/aviator-sound";
+import { startMusic, stopMusic, playStart, playFlewAway } from "../lib/aviator-sound";
 import { crashConfig, watchCrashConfig } from "../lib/crash-config";
 
 import loadingAsset from "../assets/aviator/loading.png";
@@ -914,6 +914,17 @@ function AviatorGame() {
   }, [musicOn, soundOn]);
 
   useEffect(() => () => { stopMusic(); }, []);
+
+  // Sound effects: takeoff sound when the round starts flying, flew-away
+  // sound when the plane crashes — only while the Sound toggle is on.
+  const prevPhaseRef = useRef<"intro" | "flying" | "crashed">("intro");
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (!soundOn || prev === phase) return;
+    if (phase === "flying") playStart();
+    if (phase === "crashed") playFlewAway();
+  }, [phase, soundOn]);
 
   useEffect(() => {
     if (!roundDetailsOpen) return;
