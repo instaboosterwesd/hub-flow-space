@@ -567,6 +567,7 @@ function BetPanel({
       if (waitingForNextRound) {
         setWaitingForNextRound(false);
       } else {
+        playBetClick();
         setPlaced((value) => !value);
       }
       return;
@@ -576,6 +577,7 @@ function BetPanel({
         amount: Number((amount * multiplier).toFixed(2)),
         multiplier: Number(multiplier.toFixed(2)),
       };
+      playCashout();
       setCashoutResult(notice);
       onCashOut(notice);
       return;
