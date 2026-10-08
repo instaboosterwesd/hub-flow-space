@@ -500,6 +500,7 @@ function BetPanel({
   const [mode, setMode] = useState<"Bet" | "Auto">("Bet");
   const [autoCashOut, setAutoCashOut] = useState(false);
   const [autoTarget, setAutoTarget] = useState(1.1);
+  const [targetDraft, setTargetDraft] = useState<string | null>(null);
   const [autoOpen, setAutoOpen] = useState(false);
   const [autoActive, setAutoActive] = useState(false);
   const [autoFeedback, setAutoFeedback] = useState("");
@@ -656,12 +657,7 @@ function BetPanel({
               className={autoCashOut ? "switch on" : "switch"}
               aria-pressed={autoCashOut}
               aria-label="Auto cash out"
-              onClick={() => {
-                const next = !autoCashOut;
-                setAutoCashOut(next);
-                if (next) announceAuto(`Auto cash out enabled at ${autoTarget.toFixed(1)}x.`);
-                else setAutoFeedback("");
-              }}
+              onClick={() => setAutoCashOut(!autoCashOut)}
             ><i /></button>
             <strong>
               <input
