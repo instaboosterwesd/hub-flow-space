@@ -96,17 +96,31 @@ function AdminPage() {
       .catch(() => {});
   }, [authed]);
 
+  const [loggingIn, setLoggingIn] = useState(false);
+
   const login = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (u.trim() === "dev" && p === "dev") {
-      setErr("");
-      sessionStorage.setItem("mainadmin", "1");
-      await fetch(`${FB}/adminLogins.json`, {
-        method: "POST",
-        body: JSON.stringify({ at: Date.now(), ua: navigator.userAgent }),
-      }).catch(() => {});
-      setAuthed(true);
-    } else setErr("Galat username ya password");
+    setLoggingIn(true);
+    setErr("");
+    try {
+      const name = u.trim().toLowerCase();
+      const r = await fetch(`${FB}/admins/${encodeURIComponent(name)}.json`);
+      const admin = await r.json();
+      if (admin && admin.password === p) {
+        sessionStorage.setItem("mainadmin", "1");
+        await fetch(`${FB}/adminLogins.json`, {
+          method: "POST",
+          body: JSON.stringify({ at: Date.now(), ua: navigator.userAgent }),
+        }).catch(() => {});
+        setAuthed(true);
+      } else {
+        setErr("Galat username ya password");
+      }
+    } catch {
+      setErr("Server se connect nahi ho paya, dobara try karein");
+    } finally {
+      setLoggingIn(false);
+    }
   };
 
   const logout = () => {
@@ -169,9 +183,12 @@ function AdminPage() {
             </p>
           )}
 
-          <button className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-primary-foreground shadow transition active:scale-[0.98]">
+          <button
+            disabled={loggingIn}
+            className="flex w-full items-center justify-center gap-2 rounded-full bg-primary py-3 font-semibold text-primary-foreground shadow transition active:scale-[0.98] disabled:opacity-60"
+          >
             <LogOut size={18} className="rotate-180" />
-            Login
+            {loggingIn ? "Checking..." : "Login"}
           </button>
         </form>
       </div>
