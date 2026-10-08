@@ -592,6 +592,19 @@ function BetPanel({
     }
   };
 
+  // Auto cash out: when enabled and the live multiplier reaches the target,
+  // cash out automatically at exactly that value.
+  useEffect(() => {
+    if (!autoCashOut || !isFlyingBet) return;
+    if (multiplier < autoTarget) return;
+    const notice = {
+      amount: Number((amount * autoTarget).toFixed(2)),
+      multiplier: Number(autoTarget.toFixed(2)),
+    };
+    setCashoutResult(notice);
+    onCashOut(notice);
+  }, [autoCashOut, isFlyingBet, multiplier, autoTarget, amount, onCashOut]);
+
   return (
     <section className={[
       "bet-panel",
@@ -650,7 +663,16 @@ function BetPanel({
               }}
             ><i /></button>
             <strong>
-              <span>{autoTarget.toFixed(1)}</span>
+              <input
+                className="auto-target-input"
+                aria-label="Auto cash out multiplier"
+                type="number"
+                min="1.1"
+                max="1000"
+                step="0.1"
+                value={autoTarget}
+                onChange={(event) => setAutoTarget(clamp(Number(event.target.value) || 1.1, 1.1, 1000))}
+              />
               <button
                 className="auto-clear"
                 aria-label="Clear auto cash out"

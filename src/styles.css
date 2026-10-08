@@ -474,6 +474,8 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; }
 .auto-play:active { transform: scale(.97); }
 .auto-cashout { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 12px; white-space: nowrap; }
 .auto-cashout strong { display: inline-flex; align-items: center; justify-content: space-between; gap: 8px; min-width: 88px; height: 28px; padding: 0 4px 0 14px; border-radius: 14px; background: oklch(0.09 0.005 260); border: 1px solid oklch(0.24 0.01 260); color: var(--foreground); font-size: 14px; font-weight: 700; }
+.auto-target-input { width: 48px; padding: 0; border: 0; outline: 0; background: transparent; color: inherit; font: inherit; text-align: center; -moz-appearance: textfield; appearance: textfield; }
+.auto-target-input::-webkit-outer-spin-button, .auto-target-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .auto-clear { width: 20px; height: 20px; display: grid; place-items: center; padding: 0; border-radius: 50%; background: oklch(0.22 0.01 260); color: var(--muted-foreground); font-size: 13px; line-height: 1; }
 .auto-clear:hover { color: var(--foreground); background: oklch(0.3 0.01 260); }
 .switch { width: 36px; height: 20px; padding: 2px; border-radius: 11px; background: oklch(0.3 0 0); display: flex; flex: 0 0 auto; transition: background .15s ease; }
