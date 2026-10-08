@@ -791,6 +791,7 @@ function AviatorGame() {
   const [profileAvatarIndex, setProfileAvatarIndex] = useState(0);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [cashoutNotice, setCashoutNotice] = useState<CashoutNotice | null>(null);
+  const [cashoutLeaving, setCashoutLeaving] = useState(false);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>(() => (
     history.map((value, index) => ({ id: `seed-${index}`, value }))
   ));
@@ -885,6 +886,17 @@ function AviatorGame() {
     setCashoutNotice(null);
     setLiveBets(makeRoundBets(round));
   }, [round, loaded]);
+
+  useEffect(() => {
+    if (!cashoutNotice) return;
+    setCashoutLeaving(false);
+    const leaveTimer = window.setTimeout(() => setCashoutLeaving(true), 2200);
+    const removeTimer = window.setTimeout(() => {
+      setCashoutNotice(null);
+      setCashoutLeaving(false);
+    }, 2700);
+    return () => { window.clearTimeout(leaveTimer); window.clearTimeout(removeTimer); };
+  }, [cashoutNotice]);
 
   useEffect(() => {
     setRoundDetailsOpen(false);
@@ -1025,7 +1037,7 @@ function AviatorGame() {
           />
         )}
         {cashoutNotice && (
-          <div className={`cashout-notice ${multiplierTone(cashoutNotice.multiplier)}`} role="status" aria-live="polite">
+          <div className={`cashout-notice ${multiplierTone(cashoutNotice.multiplier)}${cashoutLeaving ? " leaving" : ""}`} role="status" aria-live="polite">
             <div className="cashout-summary">
               <div className="cashout-copy">You have cashed<br />out!</div>
               <span className="cashout-multiplier">{cashoutNotice.multiplier.toFixed(2)}x</span>
