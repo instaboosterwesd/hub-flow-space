@@ -657,7 +657,11 @@ function BetPanel({
               className={autoCashOut ? "switch on" : "switch"}
               aria-pressed={autoCashOut}
               aria-label="Auto cash out"
-              onClick={() => setAutoCashOut(!autoCashOut)}
+              onClick={() => {
+                const next = !autoCashOut;
+                setAutoCashOut(next);
+                if (next && !placed && !waitingForNextRound && !cashoutResult) handleMainBet();
+              }}
             ><i /></button>
             <strong>
               <input
