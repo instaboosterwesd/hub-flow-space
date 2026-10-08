@@ -478,9 +478,9 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; }
 .auto-target-input::-webkit-outer-spin-button, .auto-target-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .auto-clear { width: 20px; height: 20px; display: grid; place-items: center; padding: 0; border-radius: 50%; background: oklch(0.22 0.01 260); color: var(--muted-foreground); font-size: 13px; line-height: 1; }
 .auto-clear:hover { color: var(--foreground); background: oklch(0.3 0.01 260); }
-.switch { width: 36px; height: 20px; padding: 2px; border-radius: 11px; background: oklch(0.3 0 0); display: flex; flex: 0 0 auto; transition: background .15s ease; }
-.switch i { width: 16px; height: 16px; border-radius: 50%; background: var(--muted-foreground); transition: transform .15s ease, background .15s ease; }
-.switch.on { background: var(--game-green); } .switch.on i { transform: translateX(16px); background: var(--foreground); }
+.switch { width: 46px; height: 26px; padding: 3px; border-radius: 13px; background: oklch(0.32 0.01 260); display: flex; align-items: center; flex: 0 0 auto; transition: background .2s ease; }
+.switch i { width: 20px; height: 20px; border-radius: 50%; background: oklch(0.92 0 0); box-shadow: 0 1px 3px oklch(0 0 0 / .45); transition: transform .2s ease; }
+.switch.on { background: var(--game-green); } .switch.on i { transform: translateX(20px); }
 .auto-dialog { width: min(528px, 94vw); max-height: min(805px, calc(100dvh - 20px)); display: flex; flex-direction: column; overflow: hidden; border-radius: 8px; background: oklch(0.15 0.01 260); }
 .auto-dialog .help-dialog-head { flex: 0 0 48px; height: 48px; padding: 0 17px; background: oklch(0.19 0.01 260); }
 .auto-dialog .help-dialog-head h2 { font-size: 16px; font-weight: 500; }

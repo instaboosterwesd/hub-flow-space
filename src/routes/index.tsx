@@ -683,12 +683,6 @@ function BetPanel({
           </div>
         </div>
       )}
-      {autoFeedback && (
-        <div className="auto-feedback" role="status" aria-live="polite">
-          <span className="auto-feedback-dot" aria-hidden="true" />
-          {autoFeedback}
-        </div>
-      )}
       {autoOpen && (
         <div className="help-backdrop" onClick={() => setAutoOpen(false)}>
           <section className="help-dialog auto-dialog" role="dialog" aria-modal="true" aria-labelledby="auto-play-title" onClick={(event) => event.stopPropagation()}>
