@@ -455,7 +455,7 @@ function AvatarPicker({
         <div className="avatar-grid">
           {avatars.map((avatar, index) => (
             <button
-              key={avatar.url}
+              key={avatar}
               className={selectedIndex === index ? "avatar-option selected" : "avatar-option"}
               aria-label={`Choose avatar ${index + 1}`}
               aria-pressed={selectedIndex === index}
@@ -464,7 +464,7 @@ function AvatarPicker({
                 onClose();
               }}
             >
-              <img src={avatar.url} alt="" />
+              <img src={avatar} alt="" />
             </button>
           ))}
         </div>
