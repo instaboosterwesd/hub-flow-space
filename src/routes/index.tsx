@@ -667,16 +667,17 @@ function BetPanel({
                 min="1.1"
                 max="1000"
                 step="0.1"
-                value={autoTarget}
-                onChange={(event) => setAutoTarget(clamp(Number(event.target.value) || 1.1, 1.1, 1000))}
+                value={targetDraft ?? String(autoTarget)}
+                onChange={(event) => setTargetDraft(event.target.value)}
+                onBlur={() => {
+                  setAutoTarget(clamp(Number(targetDraft) || 1.1, 1.1, 1000));
+                  setTargetDraft(null);
+                }}
               />
               <button
                 className="auto-clear"
                 aria-label="Clear auto cash out"
-                onClick={() => {
-                  setAutoCashOut(false);
-                  announceAuto("Auto cash out cleared.");
-                }}
+                onClick={() => setAutoCashOut(false)}
               >×</button>
             </strong>
           </div>
