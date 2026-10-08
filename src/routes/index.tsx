@@ -826,6 +826,8 @@ function AviatorGame() {
     return () => window.clearInterval(timer);
   }, []);
 
+  useEffect(() => watchCrashConfig(), []);
+
   useEffect(() => {
     if (!loaded) return;
     const introDuration = 7000;

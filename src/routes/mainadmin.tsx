@@ -79,6 +79,7 @@ function AdminPage() {
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <button onClick={logout} className="rounded-md border border-border px-4 py-2">Logout</button>
         </div>
+        <CrashControl />
         <div className="rounded-xl border border-border bg-card p-4">
           <h2 className="mb-3 font-semibold">Recent admin logins (Firebase)</h2>
           {logs.length === 0 ? <p className="text-muted-foreground">Koi record nahi</p> : (
