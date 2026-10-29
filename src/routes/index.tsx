@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { changeBalance, getBalance, DEFAULT_USER_ID } from "@/lib/balance";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import { startMusic, stopMusic, playStart, playFlewAway } from "../lib/aviator-sound";
-import { crashConfig, watchCrashConfig } from "../lib/crash-config";
+import { crashConfig, watchCrashConfig, setScope } from "../lib/crash-config";
 
 import loadingAsset from "../assets/aviator/loading.png";
 import wordmarkAsset from "../assets/aviator/wordmark.svg";
@@ -809,7 +809,9 @@ function AviatorGame() {
   const [userId, setUserId] = useState(DEFAULT_USER_ID);
   const [balance, setBalanceState] = useState<number | null>(null);
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("user")?.trim() || DEFAULT_USER_ID;
+    const sp = new URLSearchParams(window.location.search);
+    setScope(sp.get("token")?.trim() ?? "");
+    const id = (sp.get("userId") ?? sp.get("user"))?.trim() || DEFAULT_USER_ID;
     setUserId(id);
     const refresh = () => getBalance(id).then((b) => setBalanceState(b ?? 0)).catch(() => {});
     refresh();

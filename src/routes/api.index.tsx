@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { listUsers, setBalance } from "@/lib/balance";
+import { createToken, listUsers, setBalance, tokenExists, validToken } from "@/lib/balance";
+import { fetchCrashConfig, saveCrashConfig } from "@/lib/crash-config";
 
 export const Route = createFileRoute("/api/")({
   head: () => ({
@@ -30,9 +31,16 @@ function ApiPanel() {
   const [msg, setMsg] = useState("");
   const [bad, setBad] = useState(false);
   const [at, setAt] = useState("");
+  const [token, setToken] = useState("");
+  useEffect(() => {
+    setToken(localStorage.getItem("api-token") ?? "");
+  }, []);
+  useEffect(() => {
+    if (token) localStorage.setItem("api-token", token);
+  }, [token]);
 
   const load = () =>
-    listUsers()
+    (token ? listUsers(token) : Promise.resolve([]))
       .then((rows) => {
         setUsers(rows);
         setAt(new Date().toLocaleTimeString());
@@ -44,7 +52,7 @@ function ApiPanel() {
 
   useEffect(() => {
     if (ok) load();
-  }, [ok]);
+  }, [ok, token]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,10 +67,15 @@ function ApiPanel() {
       setBad(true);
       return;
     }
+    if (!token) {
+      setMsg("Create or select a token first.");
+      setBad(true);
+      return;
+    }
     setMsg("Saving…");
     setBad(false);
     try {
-      await setBalance(id, Number(bal));
+      await setBalance(id, Number(bal), token);
       setMsg(`Saved ${id} at ₹${Number(bal).toFixed(2)}.`);
       setUid("");
       setBal("");
@@ -126,7 +139,7 @@ function ApiPanel() {
             <span className="api-tag">Firebase</span>
           </div>
           <div className="api-spacer" />
-          <a className="api-link" href="/" target="_blank" rel="noreferrer">
+          <a className="api-link" href={token ? `/?token=${token}` : "/"} target="_blank" rel="noreferrer">
             Open game
           </a>
           <button className="api-link" type="button" onClick={load}>
@@ -145,8 +158,10 @@ function ApiPanel() {
           </button>
         </header>
 
+        <TokenCard token={token} onToken={setToken} />
+
         <section className="api-card">
-          <h2>Overview</h2>
+          <h2>Overview {token && <code>{token.slice(0, 8)}…</code>}</h2>
           <div className="api-stats">
             <div className="api-stat">
               <span>Users</span>
@@ -223,7 +238,11 @@ function ApiPanel() {
             <tbody>
               {shown.map((u) => (
                 <tr key={u.userId}>
-                  <td>{u.userId}</td>
+                  <td>
+                    <a href={`/?token=${token}&userId=${encodeURIComponent(u.userId)}`} target="_blank" rel="noreferrer">
+                      {u.userId}
+                    </a>
+                  </td>
                   <td className="num">{u.balance.toFixed(2)}</td>
                   <td className="act">
                     <button
@@ -247,7 +266,7 @@ function ApiPanel() {
           )}
         </section>
 
-        <Docs />
+        <Docs token={token} />
       </div>
     </div>
   );
@@ -279,44 +298,113 @@ function Code({ children }: { children: string }) {
   );
 }
 
-function Docs() {
+function TokenCard({ token, onToken }: { token: string; onToken: (t: string) => void }) {
+  const [draft, setDraft] = useState(token);
+  const [mode, setMode] = useState<"auto" | "manual">("auto");
+  const [min, setMin] = useState("1.01");
+  const [max, setMax] = useState("3");
+  const [note, setNote] = useState("");
+  useEffect(() => {
+    setDraft(token);
+    if (!token) return;
+    fetchCrashConfig(token).then((c) => {
+      setMode(c.mode);
+      setMin(String(c.min));
+      setMax(String(c.max));
+    });
+  }, [token]);
+
+  const create = async () => {
+    setNote("Creating…");
+    const t = await createToken();
+    onToken(t);
+    setNote("New token created.");
+  };
+  const use = async () => {
+    const t = draft.trim();
+    if (!validToken(t) || !(await tokenExists(t))) return setNote("That token does not exist.");
+    onToken(t);
+    setNote("Token selected.");
+  };
+  const save = async () => {
+    const lo = Number(min);
+    const hi = Number(max);
+    if (mode === "manual" && (!(lo >= 1.01) || !(hi >= lo))) return setNote("Min must be ≥ 1.01 and max ≥ min.");
+    await saveCrashConfig({ mode, min: mode === "manual" ? lo : 1.01, max: mode === "manual" ? hi : 3 }, token);
+    setNote(mode === "manual" ? `Saved: this token's users crash between ${lo}x and ${hi}x.` : "Saved: random crash.");
+  };
+
+  return (
+    <section className="api-card">
+      <h2>Token</h2>
+      <p>Each token has its own users, balances and crash setting.</p>
+      <div className="api-form">
+        <input className="api-input grow" placeholder="Paste a token" value={draft} onChange={(e) => setDraft(e.target.value)} />
+        <button className="api-btn ghost" type="button" onClick={use}>Use</button>
+        <button className="api-btn" type="button" onClick={create}>Create a Token</button>
+      </div>
+      {token && (
+        <>
+          <Code>{token}</Code>
+          <h3>Crash setting for this token</h3>
+          <div className="api-form">
+            <select className="api-input" value={mode} onChange={(e) => setMode(e.target.value as "auto" | "manual")}>
+              <option value="auto">Auto (random)</option>
+              <option value="manual">Manual range</option>
+            </select>
+            {mode === "manual" && (
+              <>
+                <input className="api-input" type="number" step="0.01" min="1.01" value={min} onChange={(e) => setMin(e.target.value)} placeholder="Min x" />
+                <input className="api-input" type="number" step="0.01" min="1.01" value={max} onChange={(e) => setMax(e.target.value)} placeholder="Max x" />
+              </>
+            )}
+            <button className="api-btn" type="button" onClick={save}>Save</button>
+          </div>
+        </>
+      )}
+      {note && <p className="api-note">{note}</p>}
+    </section>
+  );
+}
+
+function Docs({ token }: { token: string }) {
+  const t = token || "YOUR_TOKEN";
   const o = typeof window !== "undefined" ? window.location.origin : "";
   return (
     <section className="api-card">
       <h2>API documentation</h2>
       <p>
-        <b>User ID format:</b> letters, numbers, <code>_</code> or <code>-</code>, up to 64 characters. Example:
-        <code>11020000102087</code>. Balance is in INR (number, 2 decimals).
+        Every request needs a <code>token</code>. Users and balances are kept separate per token. User ID: letters,
+        numbers, <code>_</code> or <code>-</code>, up to 64 characters. Balance is INR.
       </p>
 
-      <h3>1. Check balance</h3>
-      <p>Read-only. Returns that user's current balance.</p>
-      <Code>{`GET ${o}/api/balance?userId=11020000102087`}</Code>
-      <Code>{`Response 200: {"userId":"11020000102087","balance":4077}
-Response 404: {"userId":"...","error":"user not found"}`}</Code>
+      <h3>1. Create a token</h3>
+      <Code>{`POST ${o}/api/token
+Content-Type: application/json
 
-      <h3>2. Set / send balance (creates user if not found)</h3>
-      <p>
-        Sets the user's balance to the given amount. If the user ID does not exist yet, it is created automatically.
-        The <code>key</code> must be the panel password.
-      </p>
+{"key":"dev"}`}</Code>
+      <Code>{`Response 200: {"success":true,"token":"..."}`}</Code>
+
+      <h3>2. Set balance (creates user if new) — returns play link</h3>
       <Code>{`POST ${o}/api/balance
 Content-Type: application/json
 
-{"userId":"11020000102087","balance":50,"key":"dev"}`}</Code>
-      <p>Or as a simple link:</p>
-      <Code>{`GET ${o}/api/balance?userId=11020000102087&balance=50&key=dev`}</Code>
-      <Code>{`Response 200: {"userId":"11020000102087","balance":50,"created":false,"updated":true}
-Response 401: {"error":"invalid key"}
-Response 400: {"error":"balance must be a number >= 0"}`}</Code>
+{"token":"${t}","userId":"11020000102087","balance":500}`}</Code>
+      <Code>{`Response 200: {"success":true,"message":"Balance updated successfully","userId":"11020000102087","balance":500,"created":false,"updated":true,"url":"${o}/?token=${t}&userId=11020000102087"}`}</Code>
+      <p>Open <code>url</code> to play. Bets deduct and cash outs add to the saved balance live.</p>
 
-      <h3>3. Play game as a user</h3>
-      <p>Opens the flight game loaded with that user's balance.</p>
-      <Code>{`${o}/?user=11020000102087`}</Code>
-      <p>
-        The game shows that user's balance, deducts the bet when a round starts and adds winnings on cash out.
-        Without <code>?user=</code> it uses the default ID 11020000102087.
-      </p>
+      <h3>3. Get balance</h3>
+      <Code>{`GET ${o}/api/balance?token=${t}&userId=11020000102087`}</Code>
+      <Code>{`Response 200: {"userId":"11020000102087","balance":480}
+Response 404: {"userId":"...","error":"user not found"}
+Response 401: {"error":"invalid token"}`}</Code>
+
+      <h3>4. Crash setting for this token</h3>
+      <Code>{`POST ${o}/api/config
+Content-Type: application/json
+
+{"token":"${t}","mode":"manual","min":2,"max":2}`}</Code>
+      <p>Use <code>"mode":"auto"</code> for random. Read it with <code>GET {o}/api/config?token={t}</code>.</p>
     </section>
   );
 }
