@@ -17,95 +17,306 @@ export const Route = createFileRoute("/api/")({
   component: ApiPanel,
 });
 
-const box = { maxWidth: 560, margin: "40px auto", padding: 20, fontFamily: "sans-serif" } as const;
-const input = { padding: 8, marginRight: 8, border: "1px solid #888", borderRadius: 6, background: "transparent", color: "inherit" } as const;
-const btn = { padding: "8px 14px", borderRadius: 6, border: "none", background: "#28a909", color: "#fff", cursor: "pointer" } as const;
+type Row = { userId: string; balance: number };
 
 function ApiPanel() {
   const [ok, setOk] = useState(false);
   const [pw, setPw] = useState("");
   const [err, setErr] = useState(false);
-  const [users, setUsers] = useState<{ userId: string; balance: number }[]>([]);
+  const [users, setUsers] = useState<Row[]>([]);
   const [uid, setUid] = useState("");
   const [bal, setBal] = useState("");
+  const [q, setQ] = useState("");
+  const [msg, setMsg] = useState("");
+  const [bad, setBad] = useState(false);
+  const [at, setAt] = useState("");
 
-  const load = () => listUsers().then(setUsers).catch(() => {});
-  useEffect(() => { if (ok) load(); }, [ok]);
+  const load = () =>
+    listUsers()
+      .then((rows) => {
+        setUsers(rows);
+        setAt(new Date().toLocaleTimeString());
+      })
+      .catch(() => {
+        setMsg("Could not load users from Firebase.");
+        setBad(true);
+      });
+
+  useEffect(() => {
+    if (ok) load();
+  }, [ok]);
+
+  const submit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const id = uid.trim();
+    if (!id) {
+      setMsg("Enter a user ID.");
+      setBad(true);
+      return;
+    }
+    if (bal === "" || Number.isNaN(Number(bal))) {
+      setMsg("Enter a balance amount.");
+      setBad(true);
+      return;
+    }
+    setMsg("Saving…");
+    setBad(false);
+    try {
+      await setBalance(id, Number(bal));
+      setMsg(`Saved ${id} at ₹${Number(bal).toFixed(2)}.`);
+      setUid("");
+      setBal("");
+      load();
+    } catch {
+      setMsg("Save failed — Firebase rejected the write.");
+      setBad(true);
+    }
+  };
 
   if (!ok) {
     return (
-      <form style={box} onSubmit={(e) => { e.preventDefault(); if (pw === "dev") setOk(true); else setErr(true); }}>
-        <h2>Password</h2>
-        <input style={input} type="password" value={pw} onChange={(e) => setPw(e.target.value)} autoFocus />
-        <button style={btn} type="submit">Open</button>
-        {err && <p style={{ color: "#e33" }}>Wrong password</p>}
-      </form>
+      <div className="api-scroll">
+        <div className="api-gate">
+          <form
+            className="api-gate-card"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (pw === "dev") {
+                setErr(false);
+                setOk(true);
+              } else {
+                setErr(true);
+              }
+            }}
+          >
+            <h1>Balance API</h1>
+            <p>Enter the panel password to open user balances and docs.</p>
+            <input
+              className="api-input"
+              type="password"
+              value={pw}
+              placeholder="Password"
+              onChange={(e) => setPw(e.target.value)}
+              autoFocus
+            />
+            <button className="api-btn" type="submit">
+              Open panel
+            </button>
+            {err && <p className="api-note err">Wrong password</p>}
+          </form>
+        </div>
+      </div>
     );
   }
 
-  const save = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uid.trim() || bal === "") return;
-    await setBalance(uid.trim(), Number(bal));
-    setUid(""); setBal("");
-    load();
-  };
+  const total = users.reduce((s, u) => s + u.balance, 0);
+  const shown = q.trim()
+    ? users.filter((u) => u.userId.toLowerCase().includes(q.trim().toLowerCase()))
+    : users;
 
   return (
-    <div style={box}>
-      <h2>User Balances</h2>
-      <form onSubmit={save} style={{ marginBottom: 20 }}>
-        <input style={input} placeholder="User ID" value={uid} onChange={(e) => setUid(e.target.value)} />
-        <input style={input} placeholder="Balance" type="number" value={bal} onChange={(e) => setBal(e.target.value)} />
-        <button style={btn} type="submit">Save</button>
-      </form>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
-        <thead><tr><th align="left">User ID</th><th align="right">Balance (INR)</th><th /></tr></thead>
-        <tbody>
-          {users.map((u) => (
-            <tr key={u.userId} style={{ borderTop: "1px solid #444" }}>
-              <td style={{ padding: 6 }}>{u.userId}</td>
-              <td align="right">{u.balance.toFixed(2)}</td>
-              <td align="right"><button style={{ ...btn, background: "#555" }} onClick={() => { setUid(u.userId); setBal(String(u.balance)); }}>Edit</button></td>
-            </tr>
-          ))}
-          {users.length === 0 && <tr><td colSpan={3} style={{ padding: 6 }}>No users yet</td></tr>}
-        </tbody>
-      </table>
-      <Docs />
+    <div className="api-scroll">
+      <div className="api-wrap">
+        <header className="api-topbar">
+          <div className="api-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <path d="M4 7h16M4 12h16M4 17h10" strokeLinecap="round" />
+            </svg>
+            Balance API
+            <span className="api-tag">Firebase</span>
+          </div>
+          <div className="api-spacer" />
+          <a className="api-link" href="/" target="_blank" rel="noreferrer">
+            Open game
+          </a>
+          <button className="api-link" type="button" onClick={load}>
+            Refresh
+          </button>
+          <button
+            className="api-link danger"
+            type="button"
+            onClick={() => {
+              setOk(false);
+              setPw("");
+              setMsg("");
+            }}
+          >
+            Lock
+          </button>
+        </header>
+
+        <section className="api-card">
+          <h2>Overview</h2>
+          <div className="api-stats">
+            <div className="api-stat">
+              <span>Users</span>
+              <strong>{users.length}</strong>
+            </div>
+            <div className="api-stat">
+              <span>Total balance</span>
+              <strong>₹{total.toFixed(2)}</strong>
+            </div>
+            <div className="api-stat">
+              <span>Updated</span>
+              <strong>{at || "—"}</strong>
+            </div>
+          </div>
+
+          <form className="api-form" onSubmit={submit}>
+            <input
+              className="api-input grow"
+              placeholder="User ID — e.g. 11020000102087"
+              value={uid}
+              onChange={(e) => setUid(e.target.value)}
+            />
+            <input
+              className="api-input"
+              placeholder="Balance (INR)"
+              type="number"
+              step="0.01"
+              min="0"
+              value={bal}
+              onChange={(e) => setBal(e.target.value)}
+            />
+            <button className="api-btn" type="submit">
+              Save
+            </button>
+            {(uid || bal) && (
+              <button
+                className="api-btn ghost"
+                type="button"
+                onClick={() => {
+                  setUid("");
+                  setBal("");
+                  setMsg("");
+                }}
+              >
+                Clear
+              </button>
+            )}
+          </form>
+          {msg && <p className={"api-note" + (bad ? " err" : "")}>{msg}</p>}
+        </section>
+
+        <section className="api-card">
+          <h2>Users</h2>
+          <div className="api-search">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+              <circle cx="11" cy="11" r="7" />
+              <path d="m20 20-3.5-3.5" strokeLinecap="round" />
+            </svg>
+            <input
+              className="api-input"
+              placeholder="Search user ID"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
+          <table className="api-table">
+            <thead>
+              <tr>
+                <th>User ID</th>
+                <th>Balance (INR)</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {shown.map((u) => (
+                <tr key={u.userId}>
+                  <td>{u.userId}</td>
+                  <td className="num">{u.balance.toFixed(2)}</td>
+                  <td className="act">
+                    <button
+                      className="api-mini"
+                      type="button"
+                      onClick={() => {
+                        setUid(u.userId);
+                        setBal(String(u.balance));
+                        setMsg("");
+                      }}
+                    >
+                      Edit
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {shown.length === 0 && (
+            <p className="api-empty">{users.length === 0 ? "No users yet." : "No user matches that search."}</p>
+          )}
+        </section>
+
+        <Docs />
+      </div>
     </div>
   );
 }
 
-const pre = { background: "rgba(127,127,127,0.15)", padding: 10, borderRadius: 6, overflowX: "auto", fontSize: 12, whiteSpace: "pre-wrap" } as const;
+function Code({ children }: { children: string }) {
+  const [done, setDone] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(children);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = children;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+    }
+    setDone(true);
+    window.setTimeout(() => setDone(false), 1200);
+  };
+  return (
+    <div className="api-code">
+      <pre>{children}</pre>
+      <button className="api-copy" type="button" onClick={copy}>
+        {done ? "Copied" : "Copy"}
+      </button>
+    </div>
+  );
+}
 
 function Docs() {
   const o = typeof window !== "undefined" ? window.location.origin : "";
   return (
-    <div style={{ marginTop: 32, fontSize: 14, lineHeight: 1.5 }}>
-      <h2>API Documentation</h2>
-      <p><b>User ID format:</b> letters, numbers, <code>_</code> or <code>-</code>, max 64 characters. Example: <code>11020000102087</code>. Balance is in INR (number, 2 decimals).</p>
+    <section className="api-card">
+      <h2>API documentation</h2>
+      <p>
+        <b>User ID format:</b> letters, numbers, <code>_</code> or <code>-</code>, up to 64 characters. Example:
+        <code>11020000102087</code>. Balance is in INR (number, 2 decimals).
+      </p>
 
       <h3>1. Check balance</h3>
-      <pre style={pre}>{`GET ${o}/api/balance?userId=11020000102087`}</pre>
-      <pre style={pre}>{`Response 200: {"userId":"11020000102087","balance":4077}
-Response 404: {"userId":"...","error":"user not found"}`}</pre>
+      <p>Read-only. Returns that user's current balance.</p>
+      <Code>{`GET ${o}/api/balance?userId=11020000102087`}</Code>
+      <Code>{`Response 200: {"userId":"11020000102087","balance":4077}
+Response 404: {"userId":"...","error":"user not found"}`}</Code>
 
       <h3>2. Set / send balance (creates user if not found)</h3>
-      <p>Sets the user's balance to the given amount. If the user ID does not exist, it is created automatically.</p>
-      <pre style={pre}>{`POST ${o}/api/balance
+      <p>
+        Sets the user's balance to the given amount. If the user ID does not exist yet, it is created automatically.
+        The <code>key</code> must be the panel password.
+      </p>
+      <Code>{`POST ${o}/api/balance
 Content-Type: application/json
 
-{"userId":"11020000102087","balance":50,"key":"dev"}`}</pre>
+{"userId":"11020000102087","balance":50,"key":"dev"}`}</Code>
       <p>Or as a simple link:</p>
-      <pre style={pre}>{`GET ${o}/api/balance?userId=11020000102087&balance=50&key=dev`}</pre>
-      <pre style={pre}>{`Response 200: {"userId":"11020000102087","balance":50,"created":false,"updated":true}
+      <Code>{`GET ${o}/api/balance?userId=11020000102087&balance=50&key=dev`}</Code>
+      <Code>{`Response 200: {"userId":"11020000102087","balance":50,"created":false,"updated":true}
 Response 401: {"error":"invalid key"}
-Response 400: {"error":"balance must be a number >= 0"}`}</pre>
+Response 400: {"error":"balance must be a number >= 0"}`}</Code>
 
       <h3>3. Play game as a user</h3>
-      <pre style={pre}>{`${o}/?user=11020000102087`}</pre>
-      <p>The game shows that user's balance, deducts the bet when a round starts and adds winnings on cash out. Without <code>?user=</code> it uses the default ID 11020000102087.</p>
-    </div>
+      <p>Opens the flight game loaded with that user's balance.</p>
+      <Code>{`${o}/?user=11020000102087`}</Code>
+      <p>
+        The game shows that user's balance, deducts the bet when a round starts and adds winnings on cash out.
+        Without <code>?user=</code> it uses the default ID 11020000102087.
+      </p>
+    </section>
   );
 }
