@@ -72,10 +72,40 @@ function ApiPanel() {
           {users.length === 0 && <tr><td colSpan={3} style={{ padding: 6 }}>No users yet</td></tr>}
         </tbody>
       </table>
-      <p style={{ marginTop: 24, fontSize: 13, opacity: 0.8 }}>
-        Check balance: <code>/api/balance?userId=USER_ID</code><br />
-        Play as a user: <code>/?user=USER_ID</code>
-      </p>
+      <Docs />
+    </div>
+  );
+}
+
+const pre = { background: "rgba(127,127,127,0.15)", padding: 10, borderRadius: 6, overflowX: "auto", fontSize: 12, whiteSpace: "pre-wrap" } as const;
+
+function Docs() {
+  const o = typeof window !== "undefined" ? window.location.origin : "";
+  return (
+    <div style={{ marginTop: 32, fontSize: 14, lineHeight: 1.5 }}>
+      <h2>API Documentation</h2>
+      <p><b>User ID format:</b> letters, numbers, <code>_</code> or <code>-</code>, max 64 characters. Example: <code>11020000102087</code>. Balance is in INR (number, 2 decimals).</p>
+
+      <h3>1. Check balance</h3>
+      <pre style={pre}>{`GET ${o}/api/balance?userId=11020000102087`}</pre>
+      <pre style={pre}>{`Response 200: {"userId":"11020000102087","balance":4077}
+Response 404: {"userId":"...","error":"user not found"}`}</pre>
+
+      <h3>2. Set / send balance (creates user if not found)</h3>
+      <p>Sets the user's balance to the given amount. If the user ID does not exist, it is created automatically.</p>
+      <pre style={pre}>{`POST ${o}/api/balance
+Content-Type: application/json
+
+{"userId":"11020000102087","balance":50,"key":"dev"}`}</pre>
+      <p>Or as a simple link:</p>
+      <pre style={pre}>{`GET ${o}/api/balance?userId=11020000102087&balance=50&key=dev`}</pre>
+      <pre style={pre}>{`Response 200: {"userId":"11020000102087","balance":50,"created":false,"updated":true}
+Response 401: {"error":"invalid key"}
+Response 400: {"error":"balance must be a number >= 0"}`}</pre>
+
+      <h3>3. Play game as a user</h3>
+      <pre style={pre}>{`${o}/?user=11020000102087`}</pre>
+      <p>The game shows that user's balance, deducts the bet when a round starts and adds winnings on cash out. Without <code>?user=</code> it uses the default ID 11020000102087.</p>
     </div>
   );
 }
