@@ -528,7 +528,7 @@ function BetPanel({
   const isFlyingBet = phase === "flying" && placed && !waitingForNextRound && !cashoutResult;
   const isLost = phase === "crashed" && placed && !waitingForNextRound && !cashoutResult;
   const payout = cashoutResult?.amount ?? Number((amount * multiplier).toFixed(2));
-  const stakeLocked = phase !== "intro" || placed || waitingForNextRound;
+  const stakeLocked = placed || waitingForNextRound;
   const buttonClass = [
     "main-bet",
     phase === "intro" && placed ? "loading" : "",
@@ -1244,7 +1244,7 @@ function AviatorGame() {
             />
           )}
           <div className="bet-panels">
-            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onStake={handleStake} />
+            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onStake={handleStake} />
             <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onStake={handleStake} />
           </div>
         </section>
