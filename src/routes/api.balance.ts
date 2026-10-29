@@ -38,7 +38,8 @@ export const Route = createFileRoute("/api/balance")({
       POST: async ({ request }) => {
         let b: Record<string, unknown> = {};
         try { b = await request.json(); } catch { return json({ error: "invalid JSON body" }, 400); }
-        return update(typeof b.userId === "string" ? b.userId.trim() : b.userId, b.balance, b.key);
+        const id = b["userId"];
+        return update(typeof id === "string" ? id.trim() : id, b["balance"], b["key"]);
       },
     },
   },
