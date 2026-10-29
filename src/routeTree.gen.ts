@@ -11,6 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MainadminRouteImport } from './routes/mainadmin'
+import { Route as ApiIndexRouteImport } from './routes/api.index'
+import { Route as ApiBalanceRouteImport } from './routes/api.balance'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +24,49 @@ const MainadminRoute = MainadminRouteImport.update({
   path: '/mainadmin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiIndexRoute = ApiIndexRouteImport.update({
+  id: '/api/',
+  path: '/api/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBalanceRoute = ApiBalanceRouteImport.update({
+  id: '/api/balance',
+  path: '/api/balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/mainadmin': typeof MainadminRoute
+  '/api/balance': typeof ApiBalanceRoute
+  '/api/': typeof ApiIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/mainadmin': typeof MainadminRoute
+  '/api/balance': typeof ApiBalanceRoute
+  '/api': typeof ApiIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/mainadmin': typeof MainadminRoute
+  '/api/balance': typeof ApiBalanceRoute
+  '/api/': typeof ApiIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/mainadmin'
+  fullPaths: '/' | '/mainadmin' | '/api/balance' | '/api/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/mainadmin'
-  id: '__root__' | '/' | '/mainadmin'
+  to: '/' | '/mainadmin' | '/api/balance' | '/api'
+  id: '__root__' | '/' | '/mainadmin' | '/api/balance' | '/api/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MainadminRoute: typeof MainadminRoute
+  ApiBalanceRoute: typeof ApiBalanceRoute
+  ApiIndexRoute: typeof ApiIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +85,28 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainadminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/': {
+      id: '/api/'
+      path: '/api'
+      fullPath: '/api/'
+      preLoaderRoute: typeof ApiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/balance': {
+      id: '/api/balance'
+      path: '/api/balance'
+      fullPath: '/api/balance'
+      preLoaderRoute: typeof ApiBalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MainadminRoute: MainadminRoute,
+  ApiBalanceRoute: ApiBalanceRoute,
+  ApiIndexRoute: ApiIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

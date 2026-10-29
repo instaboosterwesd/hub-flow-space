@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { changeBalance, getBalance, DEFAULT_USER_ID } from "@/lib/balance";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import { startMusic, stopMusic, playStart, playFlewAway } from "../lib/aviator-sound";
 import { crashConfig, watchCrashConfig } from "../lib/crash-config";
@@ -486,7 +487,9 @@ function BetPanel({
   multiplier,
   round,
   onCashOut,
+  onStake,
 }: {
+  onStake: (amount: number) => void;
   initial: number;
   phase: FlightPhase;
   multiplier: number;
@@ -554,6 +557,11 @@ function BetPanel({
     setAutoFeedback(message);
     window.setTimeout(() => setAutoFeedback(""), 3400);
   };
+
+  useEffect(() => {
+    if (phase === "flying" && placed && !waitingForNextRound) onStake(amount);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase === "flying"]);
 
   useEffect(() => {
     setPlaced(waitingForNextRound);
@@ -798,6 +806,22 @@ function AviatorGame() {
   const [copied, setCopied] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
+  const [userId, setUserId] = useState(DEFAULT_USER_ID);
+  const [balance, setBalanceState] = useState<number | null>(null);
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("user")?.trim() || DEFAULT_USER_ID;
+    setUserId(id);
+    const refresh = () => getBalance(id).then((b) => setBalanceState(b ?? 0)).catch(() => {});
+    refresh();
+    const t = window.setInterval(refresh, 5000);
+    return () => window.clearInterval(t);
+  }, []);
+  const applyBalance = (delta: number) => {
+    setBalanceState((b) => Math.max(0, (b ?? 0) + delta));
+    changeBalance(userId, delta).then(setBalanceState).catch(() => {});
+  };
+  const handleCashOut = (n: CashoutNotice) => { setCashoutNotice(n); applyBalance(n.amount); };
+  const handleStake = (amount: number) => applyBalance(-amount);
   const [animationOn, setAnimationOn] = useState(true);
   const [profileAvatarIndex, setProfileAvatarIndex] = useState(0);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
@@ -1014,7 +1038,7 @@ function AviatorGame() {
       <header className="topbar">
         <img src={wordmarkAsset} alt="Aviator" className="brand" />
         <button className="help" onClick={() => setHelpOpen(true)}><HelpCircle /> <span>How to play?</span></button>
-        <div className="balance"><strong>4,077</strong> INR</div>
+        <div className="balance"><strong>{balance === null ? "..." : money(balance)}</strong> INR</div>
         <button className="menu-button" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button>
         {menuOpen && (
           <div className="menu-popover" role="dialog" aria-label="Game menu" onClick={(event) => event.stopPropagation()}>
@@ -1026,7 +1050,7 @@ function AviatorGame() {
               >
                 <img src={avatars[profileAvatarIndex] ?? avatar1} alt="" />
               </button>
-              <strong>11020000102087</strong>
+              <strong>{userId}</strong>
               <button className="change-avatar" onClick={() => setAvatarPickerOpen(true)}><UserRound /><span>Change<br />Avatar</span></button>
             </div>
             <div className="menu-settings">
@@ -1218,8 +1242,8 @@ function AviatorGame() {
             />
           )}
           <div className="bet-panels">
-            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={setCashoutNotice} />
-            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={setCashoutNotice} />
+            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onStake={handleStake} />
+            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onStake={handleStake} />
           </div>
         </section>
       </div>
