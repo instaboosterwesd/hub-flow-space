@@ -21,8 +21,8 @@ describe("Bet balance rules", () => {
     render(<BetPanel initial={10000} phase="flying" multiplier={1.5} round={1}
       onCashOut={vi.fn()} onReserveBet={reserve} onRefundBet={vi.fn()} />);
     if (trigger === "switch") {
-      fireEvent.click(screen.getByRole("button", { name: "Auto", exact: true }));
-      fireEvent.click(screen.getByRole("button", { name: "Auto cash out", exact: true }));
+      fireEvent.click(screen.getByRole("button", { name: /^Auto$/ }));
+      fireEvent.click(screen.getByRole("button", { name: /^Auto cash out$/ }));
     } else {
       fireEvent.click(screen.getByRole("button", { name: /BET 10,000/ }));
     }
@@ -37,10 +37,10 @@ describe("Bet balance rules", () => {
       onReserveBet: vi.fn(() => true), onRefundBet: vi.fn() };
     const view = render(<BetPanel {...props} phase="intro" multiplier={1} />);
     if (auto) {
-      fireEvent.click(screen.getByRole("button", { name: "Auto", exact: true }));
+      fireEvent.click(screen.getByRole("button", { name: /^Auto$/ }));
       fireEvent.change(screen.getByLabelText("Auto cash out multiplier"), { target: { value: "2" } });
       fireEvent.blur(screen.getByLabelText("Auto cash out multiplier"));
-      fireEvent.click(screen.getByRole("button", { name: "Auto cash out", exact: true }));
+      fireEvent.click(screen.getByRole("button", { name: /^Auto cash out$/ }));
     } else {
       fireEvent.click(screen.getByRole("button", { name: /BET 90/ }));
     }
