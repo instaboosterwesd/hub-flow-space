@@ -11,6 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as MainadminRouteImport } from './routes/mainadmin'
+import { Route as ApiIndexRouteImport } from './routes/api.index'
+import { Route as ApiBalanceRouteImport } from './routes/api.balance'
+import { Route as ApiConfigRouteImport } from './routes/api.config'
+import { Route as ApiTokenRouteImport } from './routes/api.token'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -22,31 +26,76 @@ const MainadminRoute = MainadminRouteImport.update({
   path: '/mainadmin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiIndexRoute = ApiIndexRouteImport.update({
+  id: '/api/',
+  path: '/api/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiBalanceRoute = ApiBalanceRouteImport.update({
+  id: '/api/balance',
+  path: '/api/balance',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiConfigRoute = ApiConfigRouteImport.update({
+  id: '/api/config',
+  path: '/api/config',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTokenRoute = ApiTokenRouteImport.update({
+  id: '/api/token',
+  path: '/api/token',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/mainadmin': typeof MainadminRoute
+  '/api/balance': typeof ApiBalanceRoute
+  '/api/config': typeof ApiConfigRoute
+  '/api/token': typeof ApiTokenRoute
+  '/api/': typeof ApiIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/mainadmin': typeof MainadminRoute
+  '/api/balance': typeof ApiBalanceRoute
+  '/api/config': typeof ApiConfigRoute
+  '/api/token': typeof ApiTokenRoute
+  '/api': typeof ApiIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/mainadmin': typeof MainadminRoute
+  '/api/balance': typeof ApiBalanceRoute
+  '/api/config': typeof ApiConfigRoute
+  '/api/token': typeof ApiTokenRoute
+  '/api/': typeof ApiIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/mainadmin'
+  fullPaths:
+    '/' | '/mainadmin' | '/api/balance' | '/api/config' | '/api/token' | '/api/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/mainadmin'
-  id: '__root__' | '/' | '/mainadmin'
+  to:
+    '/' | '/mainadmin' | '/api/balance' | '/api/config' | '/api/token' | '/api'
+  id:
+    | '__root__'
+    | '/'
+    | '/mainadmin'
+    | '/api/balance'
+    | '/api/config'
+    | '/api/token'
+    | '/api/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   MainadminRoute: typeof MainadminRoute
+  ApiBalanceRoute: typeof ApiBalanceRoute
+  ApiConfigRoute: typeof ApiConfigRoute
+  ApiTokenRoute: typeof ApiTokenRoute
+  ApiIndexRoute: typeof ApiIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -65,12 +114,44 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MainadminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/': {
+      id: '/api/'
+      path: '/api'
+      fullPath: '/api/'
+      preLoaderRoute: typeof ApiIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/balance': {
+      id: '/api/balance'
+      path: '/api/balance'
+      fullPath: '/api/balance'
+      preLoaderRoute: typeof ApiBalanceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/config': {
+      id: '/api/config'
+      path: '/api/config'
+      fullPath: '/api/config'
+      preLoaderRoute: typeof ApiConfigRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/token': {
+      id: '/api/token'
+      path: '/api/token'
+      fullPath: '/api/token'
+      preLoaderRoute: typeof ApiTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   MainadminRoute: MainadminRoute,
+  ApiBalanceRoute: ApiBalanceRoute,
+  ApiConfigRoute: ApiConfigRoute,
+  ApiTokenRoute: ApiTokenRoute,
+  ApiIndexRoute: ApiIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
