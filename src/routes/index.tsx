@@ -73,6 +73,33 @@ type FlightPoint = { x: number; y: number };
 type EndpointState = FlightPoint & { multiplier: number; tangentSlope: number };
 type FlightPhase = "intro" | "flying" | "crashed";
 type CashoutNotice = { amount: number; multiplier: number };
+type CashoutEntry = CashoutNotice & { id: number };
+
+export function CashoutNotification({ notice, onDismiss }: { notice: CashoutEntry; onDismiss: (id: number) => void }) {
+  const [leaving, setLeaving] = useState(false);
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+  useEffect(() => {
+    const leaveTimer = window.setTimeout(() => setLeaving(true), 2200);
+    const removeTimer = window.setTimeout(() => dismissRef.current(notice.id), 2700);
+    return () => { window.clearTimeout(leaveTimer); window.clearTimeout(removeTimer); };
+  }, [notice.id]);
+  return (
+    <div className={`cashout-notice ${multiplierTone(notice.multiplier)}${leaving ? " leaving" : ""}`} role="status" aria-live="polite">
+      <div className="cashout-summary">
+        <div className="cashout-copy">You have cashed<br />out!</div>
+        <span className="cashout-multiplier">{notice.multiplier.toFixed(2)}x</span>
+      </div>
+      <div className="cashout-win">
+        <span className="cashout-win-stars left" aria-hidden="true"><i>☆</i><i>☆</i></span>
+        <strong>Win,INR</strong>
+        <b>{money(notice.amount)}</b>
+        <span className="cashout-win-stars right" aria-hidden="true"><i>☆</i><i>☆</i></span>
+      </div>
+      <button aria-label="Dismiss cash out notification" onClick={() => onDismiss(notice.id)}>×</button>
+    </div>
+  );
+}
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 const smoothStep = (value: number) => value * value * (3 - 2 * value);
@@ -909,7 +936,8 @@ function AviatorGame() {
   };
   const handleCashOut = (notice: CashoutNotice) => {
     refundBet(notice.amount);
-    setCashoutNotice(notice);
+    const entry = { ...notice, id: ++cashoutSequence.current };
+    setCashoutNotices((current) => [...current, entry]);
   };
   const [progress, setProgress] = useState(0);
   const [loaded, setLoaded] = useState(false);
@@ -932,8 +960,9 @@ function AviatorGame() {
   const [animationOn, setAnimationOn] = useState(true);
   const [profileAvatarIndex, setProfileAvatarIndex] = useState(0);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
-  const [cashoutNotice, setCashoutNotice] = useState<CashoutNotice | null>(null);
-  const [cashoutLeaving, setCashoutLeaving] = useState(false);
+  const [cashoutNotices, setCashoutNotices] = useState<CashoutEntry[]>([]);
+  const cashoutSequence = useRef(0);
+  const dismissCashout = (id: number) => setCashoutNotices((current) => current.filter((notice) => notice.id !== id));
   const [balanceToast, setBalanceToast] = useState(false);
   const [balanceToastLeaving, setBalanceToastLeaving] = useState(false);
   const showBalanceToast = () => setBalanceToast(true);
@@ -1028,20 +1057,8 @@ function AviatorGame() {
 
   useEffect(() => {
     if (!loaded) return;
-    setCashoutNotice(null);
     setLiveBets(makeRoundBets(round));
   }, [round, loaded]);
-
-  useEffect(() => {
-    if (!cashoutNotice) return;
-    setCashoutLeaving(false);
-    const leaveTimer = window.setTimeout(() => setCashoutLeaving(true), 2200);
-    const removeTimer = window.setTimeout(() => {
-      setCashoutNotice(null);
-      setCashoutLeaving(false);
-    }, 2700);
-    return () => { window.clearTimeout(leaveTimer); window.clearTimeout(removeTimer); };
-  }, [cashoutNotice]);
 
   useEffect(() => {
     if (!balanceToast) return;
@@ -1203,21 +1220,9 @@ function AviatorGame() {
             onClose={() => setAvatarPickerOpen(false)}
           />
         )}
-        {cashoutNotice && (
-          <div className={`cashout-notice ${multiplierTone(cashoutNotice.multiplier)}${cashoutLeaving ? " leaving" : ""}`} role="status" aria-live="polite">
-            <div className="cashout-summary">
-              <div className="cashout-copy">You have cashed<br />out!</div>
-              <span className="cashout-multiplier">{cashoutNotice.multiplier.toFixed(2)}x</span>
-            </div>
-            <div className="cashout-win">
-              <span className="cashout-win-stars left" aria-hidden="true"><i>☆</i><i>☆</i></span>
-              <strong>Win,INR</strong>
-              <b>{money(cashoutNotice.amount)}</b>
-              <span className="cashout-win-stars right" aria-hidden="true"><i>☆</i><i>☆</i></span>
-            </div>
-            <button aria-label="Dismiss cash out notification" onClick={() => setCashoutNotice(null)}>×</button>
-          </div>
-        )}
+        <div className="cashout-notices">
+          {cashoutNotices.map((notice) => <CashoutNotification key={notice.id} notice={notice} onDismiss={dismissCashout} />)}
+        </div>
         {accountError && <div className="balance-toast" role="alert"><span>{accountError}</span></div>}
         {balanceToast && !accountError && (
           <div className={`balance-toast${balanceToastLeaving ? " leaving" : ""}`} role="alert">
@@ -1370,7 +1375,7 @@ function AviatorGame() {
             />
           )}
           <div className="bet-panels">
-            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} onInsufficientBalance={showBalanceToast} />
+            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} onInsufficientBalance={showBalanceToast} />
             <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} onInsufficientBalance={showBalanceToast} />
           </div>
         </section>
