@@ -1,14 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
 import { createToken, listUsers, setBalance, tokenExists, validToken } from "@/lib/balance";
 import { fetchCrashConfig, saveCrashConfig } from "@/lib/crash-config";
 
 export const Route = createFileRoute("/api/")({
   head: () => ({
     meta: [
-      { title: "Balance API Panel" },
+      { title: "Aviator — Balance API Panel" },
       { name: "description", content: "Manage user balances by user ID." },
-      { property: "og:title", content: "Balance API Panel" },
+      { property: "og:title", content: "Aviator — Balance API Panel" },
       { property: "og:description", content: "Manage user balances by user ID." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -112,9 +113,9 @@ function ApiPanel() {
               onChange={(e) => setPw(e.target.value)}
               autoFocus
             />
-            <button className="api-btn" type="submit">
+            <Button className="api-btn" type="submit">
               Open panel
-            </button>
+            </Button>
             {err && <p className="api-note err">Wrong password</p>}
           </form>
         </div>
@@ -142,10 +143,10 @@ function ApiPanel() {
           <a className="api-link" href={token ? `/?token=${token}` : "/"} target="_blank" rel="noreferrer">
             Open game
           </a>
-          <button className="api-link" type="button" onClick={load}>
+          <Button className="api-link" type="button" onClick={load}>
             Refresh
-          </button>
-          <button
+          </Button>
+          <Button
             className="api-link danger"
             type="button"
             onClick={() => {
@@ -155,7 +156,7 @@ function ApiPanel() {
             }}
           >
             Lock
-          </button>
+          </Button>
         </header>
 
         <TokenCard token={token} onToken={setToken} />
@@ -193,11 +194,11 @@ function ApiPanel() {
               value={bal}
               onChange={(e) => setBal(e.target.value)}
             />
-            <button className="api-btn" type="submit">
+            <Button className="api-btn" type="submit">
               Save
-            </button>
+            </Button>
             {(uid || bal) && (
-              <button
+              <Button
                 className="api-btn ghost"
                 type="button"
                 onClick={() => {
@@ -207,7 +208,7 @@ function ApiPanel() {
                 }}
               >
                 Clear
-              </button>
+              </Button>
             )}
           </form>
           {msg && <p className={"api-note" + (bad ? " err" : "")}>{msg}</p>}
@@ -245,7 +246,7 @@ function ApiPanel() {
                   </td>
                   <td className="num">{u.balance.toFixed(2)}</td>
                   <td className="act">
-                    <button
+                    <Button
                       className="api-mini"
                       type="button"
                       onClick={() => {
@@ -255,7 +256,7 @@ function ApiPanel() {
                       }}
                     >
                       Edit
-                    </button>
+                    </Button>
                   </td>
                 </tr>
               ))}
@@ -291,9 +292,9 @@ function Code({ children }: { children: string }) {
   return (
     <div className="api-code">
       <pre>{children}</pre>
-      <button className="api-copy" type="button" onClick={copy}>
+      <Button className="api-copy" type="button" onClick={copy}>
         {done ? "Copied" : "Copy"}
-      </button>
+      </Button>
     </div>
   );
 }
@@ -311,7 +312,7 @@ function TokenCard({ token, onToken }: { token: string; onToken: (t: string) => 
       setMode(c.mode);
       setMin(String(c.min));
       setMax(String(c.max));
-    });
+    }).catch(() => setNote("Could not load crash settings."));
   }, [token]);
 
   const create = async () => {
@@ -340,8 +341,8 @@ function TokenCard({ token, onToken }: { token: string; onToken: (t: string) => 
       <p>Each token has its own users, balances and crash setting.</p>
       <div className="api-form">
         <input className="api-input grow" placeholder="Paste a token" value={draft} onChange={(e) => setDraft(e.target.value)} />
-        <button className="api-btn ghost" type="button" onClick={use}>Use</button>
-        <button className="api-btn" type="button" onClick={create}>Create a Token</button>
+        <Button className="api-btn ghost" type="button" onClick={use}>Use</Button>
+        <Button className="api-btn" type="button" onClick={create}>Create a Token</Button>
       </div>
       {token && (
         <>
@@ -358,7 +359,7 @@ function TokenCard({ token, onToken }: { token: string; onToken: (t: string) => 
                 <input className="api-input" type="number" step="0.01" min="1.01" value={max} onChange={(e) => setMax(e.target.value)} placeholder="Max x" />
               </>
             )}
-            <button className="api-btn" type="button" onClick={save}>Save</button>
+            <Button className="api-btn" type="button" onClick={save}>Save</Button>
           </div>
         </>
       )}
@@ -369,7 +370,8 @@ function TokenCard({ token, onToken }: { token: string; onToken: (t: string) => 
 
 function Docs({ token }: { token: string }) {
   const t = token || "YOUR_TOKEN";
-  const o = typeof window !== "undefined" ? window.location.origin : "";
+  const [o, setOrigin] = useState("");
+  useEffect(() => setOrigin(window.location.origin), []);
   return (
     <section className="api-card">
       <h2>API documentation</h2>

@@ -2,7 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import { startMusic, stopMusic, playStart, playFlewAway } from "../lib/aviator-sound";
-import { crashConfig, watchCrashConfig } from "../lib/crash-config";
+import { crashConfig, watchCrashConfig, setScope } from "../lib/crash-config";
+import { DEFAULT_USER_ID, getBalance, setBalance as saveUserBalance, tokenExists, validToken } from "../lib/balance";
 import { debitBet } from "../lib/bet-balance";
 
 import loadingAsset from "../assets/aviator/loading.png";
@@ -835,16 +836,76 @@ export function BetPanel({
 function AviatorGame() {
   const [balance, setBalance] = useState(4077);
   const balanceRef = useRef(4077);
+  const [userId, setUserId] = useState(DEFAULT_USER_ID);
+  const [accountError, setAccountError] = useState("");
+  const accountRef = useRef<{ userId: string; token: string } | null>(null);
+  const balanceReady = useRef(true);
+  const balanceWrites = useRef(Promise.resolve());
+  const balanceVersion = useRef(0);
+  const persistBalance = (next: number) => {
+    const account = accountRef.current;
+    if (!account) return;
+    balanceVersion.current += 1;
+    balanceWrites.current = balanceWrites.current
+      .then(() => saveUserBalance(account.userId, next, account.token))
+      .catch(() => {
+        balanceReady.current = false;
+        setAccountError("Could not save your balance. Please refresh before placing another bet.");
+      });
+  };
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token")?.trim() ?? "";
+    const id = (params.get("userId") ?? params.get("user"))?.trim() || DEFAULT_USER_ID;
+    setScope(token);
+    if (!token && !params.has("userId") && !params.has("user")) return;
+    balanceReady.current = false;
+    balanceRef.current = 0;
+    setBalance(0);
+    setUserId(id);
+    let active = true;
+    const openAccount = async () => {
+      if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) throw new Error("Invalid user ID.");
+      if (token && (!validToken(token) || !(await tokenExists(token)))) throw new Error("Invalid game token.");
+      const saved = await getBalance(id, token);
+      if (saved === null) throw new Error("User not found. Please check your game link.");
+      if (!active) return;
+      accountRef.current = { userId: id, token };
+      balanceRef.current = saved;
+      setBalance(saved);
+      balanceReady.current = true;
+    };
+    openAccount().catch((error: unknown) => {
+      if (active) setAccountError(error instanceof Error ? error.message : "Could not load your balance.");
+    });
+    const refreshTimer = window.setInterval(async () => {
+      const account = accountRef.current;
+      if (!account || !balanceReady.current) return;
+      await balanceWrites.current;
+      const version = balanceVersion.current;
+      try {
+        const saved = await getBalance(account.userId, account.token);
+        if (active && version === balanceVersion.current && saved !== null) {
+          balanceRef.current = saved;
+          setBalance(saved);
+        }
+      } catch { /* Preserve the last confirmed balance during temporary read failures. */ }
+    }, 5000);
+    return () => { active = false; window.clearInterval(refreshTimer); setScope(""); };
+  }, []);
   const reserveBet = (stake: number) => {
+    if (!balanceReady.current) return false;
     const next = debitBet(balanceRef.current, stake);
     if (next === null) return false;
     balanceRef.current = next;
     setBalance(next);
+    persistBalance(next);
     return true;
   };
   const refundBet = (amount: number) => {
     balanceRef.current = Math.round((balanceRef.current + amount) * 100) / 100;
     setBalance(balanceRef.current);
+    persistBalance(balanceRef.current);
   };
   const handleCashOut = (notice: CashoutNotice) => {
     refundBet(notice.amount);
@@ -1110,7 +1171,7 @@ function AviatorGame() {
               >
                 <img src={avatars[profileAvatarIndex] ?? avatar1} alt="" />
               </button>
-              <strong>11020000102087</strong>
+              <strong>{userId}</strong>
               <button className="change-avatar" onClick={() => setAvatarPickerOpen(true)}><UserRound /><span>Change<br />Avatar</span></button>
             </div>
             <div className="menu-settings">
@@ -1157,7 +1218,8 @@ function AviatorGame() {
             <button aria-label="Dismiss cash out notification" onClick={() => setCashoutNotice(null)}>×</button>
           </div>
         )}
-        {balanceToast && (
+        {accountError && <div className="balance-toast" role="alert"><span>{accountError}</span></div>}
+        {balanceToast && !accountError && (
           <div className={`balance-toast${balanceToastLeaving ? " leaving" : ""}`} role="alert">
             <span>Your balance is insufficient, please recharge in time. (Error:33)</span>
             <button aria-label="Dismiss insufficient balance notification" onClick={() => setBalanceToast(false)}>×</button>
