@@ -2,9 +2,9 @@
 // bg-music loops while Music/Sound is on; start.mp3 plays at takeoff and
 // flewaway.mp3 plays when the plane crashes (only when Sound is on).
 
-import bgMusicUrl from "../assets/bg-music.mp3";
-import startUrl from "../assets/start.mp3";
-import flewAwayUrl from "../assets/flewaway.mp3";
+import bgMusicUrl from "../assets/bg-music.mp3?url";
+import startUrl from "../assets/start.mp3?url";
+import flewAwayUrl from "../assets/flewaway.mp3?url";
 
 let musicEl: HTMLAudioElement | null = null;
 let startEl: HTMLAudioElement | null = null;
