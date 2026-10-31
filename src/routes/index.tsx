@@ -501,6 +501,7 @@ export function BetPanel({
   onInsufficientBalance?: () => void;
 }) {
   const [amount, setAmount] = useState(initial);
+  const [amountDraft, setAmountDraft] = useState<string | null>(null);
   const [placed, setPlaced] = useState(false);
   const [waitingForNextRound, setWaitingForNextRound] = useState(false);
   const [cashoutResult, setCashoutResult] = useState<CashoutNotice | null>(null);
@@ -655,7 +656,23 @@ export function BetPanel({
         <div className="stake-tools">
           <div className="stake-row">
             <button aria-label="Decrease bet" disabled={stakeLocked} onClick={() => change(-1)}><Minus /></button>
-            <strong>{amount.toFixed(2)}</strong>
+            <strong><input
+              className="stake-amount-input"
+              aria-label="Bet amount"
+              type="number"
+              min="10"
+              max="8000"
+              step="10"
+              value={amountDraft ?? amount.toFixed(2)}
+              onChange={(event) => setAmountDraft(event.target.value)}
+              onBlur={() => {
+                if (amountDraft !== null) {
+                  const next = clamp(Number(amountDraft) || 0, 10, 8000);
+                  setAmount(next);
+                  setAmountDraft(null);
+                }
+              }}
+            /></strong>
             <button aria-label="Increase bet" disabled={stakeLocked} onClick={() => change(1)}><Plus /></button>
           </div>
           <div className="quick-grid">

@@ -548,6 +548,9 @@ button { font: inherit; color: inherit; border: 0; cursor: pointer; }
 .stake-row { display: grid; grid-template-columns: 25px minmax(0, 1fr) 25px; align-items: center; height: 28px; padding: 0 2px; border-radius: 17px; background: var(--game-row); }
 .stake-row button { width: 19px; height: 19px; margin: 0 auto; display: grid; place-items: center; padding: 0; border-radius: 50%; border: 1px solid var(--muted-foreground); background: transparent; color: var(--muted-foreground); line-height: 0; }
 .stake-row svg { width: 12px; height: 12px; }.stake-row strong { display: block; min-width: 0; text-align: center; font-size: 17px; line-height: 1; }
+.stake-amount-input { width: 100%; min-width: 0; border: none; outline: none; background: transparent; color: inherit; font: inherit; font-weight: 700; text-align: center; padding: 0; -moz-appearance: textfield; appearance: textfield; }
+.stake-amount-input::-webkit-outer-spin-button, .stake-amount-input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stake-amount-input:focus { text-align: center; }
 .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-top: 3px; }
 .quick-grid button { height: 15px; border-radius: 11px; background: var(--game-row); color: var(--muted-foreground); font-size: 11px; }
 .waiting-action { display: flex; min-width: 0; flex-direction: column; gap: 5px; }
