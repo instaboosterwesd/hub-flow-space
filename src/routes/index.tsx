@@ -1,9 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { changeBalance, getBalance, DEFAULT_USER_ID } from "@/lib/balance";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import { startMusic, stopMusic, playStart, playFlewAway } from "../lib/aviator-sound";
-import { crashConfig, watchCrashConfig, setScope } from "../lib/crash-config";
+import { crashConfig, watchCrashConfig } from "../lib/crash-config";
+import { debitBet } from "../lib/bet-balance";
 
 import loadingAsset from "../assets/aviator/loading.png";
 import wordmarkAsset from "../assets/aviator/wordmark.svg";
@@ -481,25 +481,32 @@ function AvatarPicker({
   );
 }
 
-function BetPanel({
+export function BetPanel({
   initial,
   phase,
   multiplier,
   round,
   onCashOut,
-  onStake,
+  onReserveBet,
+  onRefundBet,
+  onInsufficientBalance,
 }: {
-  onStake: (amount: number) => void;
   initial: number;
   phase: FlightPhase;
   multiplier: number;
   round: number;
   onCashOut: (notice: CashoutNotice) => void;
+  onReserveBet: (amount: number) => boolean;
+  onRefundBet: (amount: number) => void;
+  onInsufficientBalance?: () => void;
 }) {
   const [amount, setAmount] = useState(initial);
+  const [amountDraft, setAmountDraft] = useState<string | null>(null);
   const [placed, setPlaced] = useState(false);
   const [waitingForNextRound, setWaitingForNextRound] = useState(false);
   const [cashoutResult, setCashoutResult] = useState<CashoutNotice | null>(null);
+  const reservedStake = useRef<number | null>(null);
+  const [betError, setBetError] = useState("");
   const [mode, setMode] = useState<"Bet" | "Auto">("Bet");
   const [autoCashOut, setAutoCashOut] = useState(false);
   const [autoTarget, setAutoTarget] = useState(1.1);
@@ -534,19 +541,16 @@ function BetPanel({
     phase === "intro" && placed ? "loading" : "",
     isFlyingBet ? "cash-out-action" : "",
     waitingForNextRound ? "waiting-next" : "",
-    cashoutResult ? "cashed-out" : "",
     isLost ? "lost" : "",
   ].filter(Boolean).join(" ");
   const buttonLabel = phase === "intro"
       ? (placed ? "CANCEL" : "BET")
     : isFlyingBet
       ? "CASH OUT"
-      : cashoutResult
-        ? "CASHED OUT"
-        : isLost
+      : isLost
           ? "LOST"
           : "BET";
-  const buttonAmount = isFlyingBet || cashoutResult
+  const buttonAmount = isFlyingBet
     ? `${money(payout)} INR`
     : isLost
       ? "0.00 INR"
@@ -559,14 +563,11 @@ function BetPanel({
   };
 
   useEffect(() => {
-    if (phase === "flying" && placed && !waitingForNextRound) onStake(amount);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase === "flying"]);
-
-  useEffect(() => {
     setPlaced(waitingForNextRound);
     setWaitingForNextRound(false);
     setCashoutResult(null);
+    if (!waitingForNextRound) reservedStake.current = null;
+    setBetError("");
   }, [round]);
 
   useEffect(() => {
@@ -579,25 +580,48 @@ function BetPanel({
   }, [autoOpen]);
 
   const handleMainBet = () => {
-    if (phase === "intro") {
-      if (waitingForNextRound) {
-        setWaitingForNextRound(false);
-      } else {
-        setPlaced((value) => !value);
+    setBetError("");
+    const cancelBet = () => {
+      const stake = reservedStake.current;
+      if (stake !== null) {
+        reservedStake.current = null;
+        onRefundBet(stake);
       }
+      setPlaced(false);
+      setWaitingForNextRound(false);
+    };
+    const reserveBet = () => {
+      if (reservedStake.current !== null) return false;
+      if (!onReserveBet(amount)) {
+        setBetError("Insufficient balance");
+        onInsufficientBalance?.();
+        return false;
+      }
+      reservedStake.current = amount;
+      setCashoutResult(null);
+      return true;
+    };
+    if (phase === "intro") {
+      if (placed || waitingForNextRound) cancelBet();
+      else if (reserveBet()) setPlaced(true);
       return;
     }
     if (isFlyingBet) {
+      const stake = reservedStake.current;
+      if (stake === null) return;
+      reservedStake.current = null;
       const notice = {
-        amount: Number((amount * multiplier).toFixed(2)),
+        amount: Number((stake * multiplier).toFixed(2)),
         multiplier: Number(multiplier.toFixed(2)),
       };
       setCashoutResult(notice);
+      setPlaced(false);
       onCashOut(notice);
       return;
     }
     if (phase === "flying") {
-      setWaitingForNextRound((value) => !value);
+      if (waitingForNextRound) cancelBet();
+      else if (reserveBet()) setWaitingForNextRound(true);
     }
   };
 
@@ -606,11 +630,15 @@ function BetPanel({
   useEffect(() => {
     if (!autoCashOut || !isFlyingBet) return;
     if (multiplier < autoTarget) return;
+    const stake = reservedStake.current;
+    if (stake === null) return;
+    reservedStake.current = null;
     const notice = {
-      amount: Number((amount * autoTarget).toFixed(2)),
+      amount: Number((stake * autoTarget).toFixed(2)),
       multiplier: Number(autoTarget.toFixed(2)),
     };
     setCashoutResult(notice);
+    setPlaced(false);
     onCashOut(notice);
   }, [autoCashOut, isFlyingBet, multiplier, autoTarget, amount, onCashOut]);
 
@@ -628,7 +656,23 @@ function BetPanel({
         <div className="stake-tools">
           <div className="stake-row">
             <button aria-label="Decrease bet" disabled={stakeLocked} onClick={() => change(-1)}><Minus /></button>
-            <strong>{amount.toFixed(2)}</strong>
+            <strong><input
+              className="stake-amount-input"
+              aria-label="Bet amount"
+              type="number"
+              min="10"
+              max="8000"
+              step="10"
+              value={amountDraft ?? amount.toFixed(2)}
+              onChange={(event) => setAmountDraft(event.target.value)}
+              onBlur={() => {
+                if (amountDraft !== null) {
+                  const next = clamp(Number(amountDraft) || 0, 10, 8000);
+                  setAmount(next);
+                  setAmountDraft(null);
+                }
+              }}
+            /></strong>
             <button aria-label="Increase bet" disabled={stakeLocked} onClick={() => change(1)}><Plus /></button>
           </div>
           <div className="quick-grid">
@@ -640,7 +684,7 @@ function BetPanel({
             <span className="waiting-label">WAITING FOR NEXT ROUND</span>
             <button
               className={buttonClass}
-              disabled={phase === "crashed" ? !waitingForNextRound : Boolean(cashoutResult)}
+              disabled={phase === "crashed"}
               onClick={handleMainBet}
             >
               <span>CANCEL</span>
@@ -649,7 +693,7 @@ function BetPanel({
         ) : (
           <button
             className={buttonClass}
-            disabled={phase === "crashed" ? !waitingForNextRound : Boolean(cashoutResult)}
+            disabled={phase === "crashed"}
             onClick={handleMainBet}
           >
             <span>{buttonLabel}</span>
@@ -657,6 +701,7 @@ function BetPanel({
           </button>
         )}
       </div>
+      {betError && <div role="alert" className="text-destructive text-center text-sm">{betError}</div>}
       {mode === "Auto" && (
         <div className="auto-row">
           <div className="auto-cashout">
@@ -668,7 +713,7 @@ function BetPanel({
               onClick={() => {
                 const next = !autoCashOut;
                 setAutoCashOut(next);
-                if (next && !placed && !waitingForNextRound && !cashoutResult) handleMainBet();
+                if (next && !placed && !waitingForNextRound) handleMainBet();
               }}
             ><i /></button>
             <strong>
@@ -788,6 +833,23 @@ function BetPanel({
 }
 
 function AviatorGame() {
+  const [balance, setBalance] = useState(4077);
+  const balanceRef = useRef(4077);
+  const reserveBet = (stake: number) => {
+    const next = debitBet(balanceRef.current, stake);
+    if (next === null) return false;
+    balanceRef.current = next;
+    setBalance(next);
+    return true;
+  };
+  const refundBet = (amount: number) => {
+    balanceRef.current = Math.round((balanceRef.current + amount) * 100) / 100;
+    setBalance(balanceRef.current);
+  };
+  const handleCashOut = (notice: CashoutNotice) => {
+    refundBet(notice.amount);
+    setCashoutNotice(notice);
+  };
   const [progress, setProgress] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
@@ -806,29 +868,14 @@ function AviatorGame() {
   const [copied, setCopied] = useState(false);
   const [soundOn, setSoundOn] = useState(false);
   const [musicOn, setMusicOn] = useState(false);
-  const [userId, setUserId] = useState(DEFAULT_USER_ID);
-  const [balance, setBalanceState] = useState<number | null>(null);
-  useEffect(() => {
-    const sp = new URLSearchParams(window.location.search);
-    setScope(sp.get("token")?.trim() ?? "");
-    const id = (sp.get("userId") ?? sp.get("user"))?.trim() || DEFAULT_USER_ID;
-    setUserId(id);
-    const refresh = () => getBalance(id).then((b) => setBalanceState(b ?? 0)).catch(() => {});
-    refresh();
-    const t = window.setInterval(refresh, 5000);
-    return () => window.clearInterval(t);
-  }, []);
-  const applyBalance = (delta: number) => {
-    setBalanceState((b) => Math.max(0, (b ?? 0) + delta));
-    changeBalance(userId, delta).then(setBalanceState).catch(() => {});
-  };
-  const handleCashOut = (n: CashoutNotice) => { setCashoutNotice(n); applyBalance(n.amount); };
-  const handleStake = (amount: number) => applyBalance(-amount);
   const [animationOn, setAnimationOn] = useState(true);
   const [profileAvatarIndex, setProfileAvatarIndex] = useState(0);
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [cashoutNotice, setCashoutNotice] = useState<CashoutNotice | null>(null);
   const [cashoutLeaving, setCashoutLeaving] = useState(false);
+  const [balanceToast, setBalanceToast] = useState(false);
+  const [balanceToastLeaving, setBalanceToastLeaving] = useState(false);
+  const showBalanceToast = () => setBalanceToast(true);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>(() => (
     history.map((value, index) => ({ id: `seed-${index}`, value }))
   ));
@@ -936,6 +983,17 @@ function AviatorGame() {
   }, [cashoutNotice]);
 
   useEffect(() => {
+    if (!balanceToast) return;
+    setBalanceToastLeaving(false);
+    const leaveTimer = window.setTimeout(() => setBalanceToastLeaving(true), 2200);
+    const removeTimer = window.setTimeout(() => {
+      setBalanceToast(false);
+      setBalanceToastLeaving(false);
+    }, 2700);
+    return () => { window.clearTimeout(leaveTimer); window.clearTimeout(removeTimer); };
+  }, [balanceToast]);
+
+  useEffect(() => {
     setRoundDetailsOpen(false);
     setFairDetailsOpen(false);
     setCopied(false);
@@ -1040,7 +1098,7 @@ function AviatorGame() {
       <header className="topbar">
         <img src={wordmarkAsset} alt="Aviator" className="brand" />
         <button className="help" onClick={() => setHelpOpen(true)}><HelpCircle /> <span>How to play?</span></button>
-        <div className="balance"><strong>{balance === null ? "..." : money(balance)}</strong> INR</div>
+        <div className="balance"><strong>{money(balance)}</strong> INR</div>
         <button className="menu-button" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button>
         {menuOpen && (
           <div className="menu-popover" role="dialog" aria-label="Game menu" onClick={(event) => event.stopPropagation()}>
@@ -1052,7 +1110,7 @@ function AviatorGame() {
               >
                 <img src={avatars[profileAvatarIndex] ?? avatar1} alt="" />
               </button>
-              <strong>{userId}</strong>
+              <strong>11020000102087</strong>
               <button className="change-avatar" onClick={() => setAvatarPickerOpen(true)}><UserRound /><span>Change<br />Avatar</span></button>
             </div>
             <div className="menu-settings">
@@ -1097,6 +1155,12 @@ function AviatorGame() {
               <span className="cashout-win-stars right" aria-hidden="true"><i>☆</i><i>☆</i></span>
             </div>
             <button aria-label="Dismiss cash out notification" onClick={() => setCashoutNotice(null)}>×</button>
+          </div>
+        )}
+        {balanceToast && (
+          <div className={`balance-toast${balanceToastLeaving ? " leaving" : ""}`} role="alert">
+            <span>Your balance is insufficient, please recharge in time. (Error:33)</span>
+            <button aria-label="Dismiss insufficient balance notification" onClick={() => setBalanceToast(false)}>×</button>
           </div>
         )}
       </header>
@@ -1244,8 +1308,8 @@ function AviatorGame() {
             />
           )}
           <div className="bet-panels">
-            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onStake={handleStake} />
-            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onStake={handleStake} />
+            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} onInsufficientBalance={showBalanceToast} />
+            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} onInsufficientBalance={showBalanceToast} />
           </div>
         </section>
       </div>
