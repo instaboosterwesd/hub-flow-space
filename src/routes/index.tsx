@@ -489,6 +489,7 @@ export function BetPanel({
   onCashOut,
   onReserveBet,
   onRefundBet,
+  onInsufficientBalance,
 }: {
   initial: number;
   phase: FlightPhase;
@@ -497,6 +498,7 @@ export function BetPanel({
   onCashOut: (notice: CashoutNotice) => void;
   onReserveBet: (amount: number) => boolean;
   onRefundBet: (amount: number) => void;
+  onInsufficientBalance?: () => void;
 }) {
   const [amount, setAmount] = useState(initial);
   const [placed, setPlaced] = useState(false);
@@ -591,6 +593,7 @@ export function BetPanel({
       if (reservedStake.current !== null) return false;
       if (!onReserveBet(amount)) {
         setBetError("Insufficient balance");
+        onInsufficientBalance?.();
         return false;
       }
       reservedStake.current = amount;
@@ -853,6 +856,9 @@ function AviatorGame() {
   const [avatarPickerOpen, setAvatarPickerOpen] = useState(false);
   const [cashoutNotice, setCashoutNotice] = useState<CashoutNotice | null>(null);
   const [cashoutLeaving, setCashoutLeaving] = useState(false);
+  const [balanceToast, setBalanceToast] = useState(false);
+  const [balanceToastLeaving, setBalanceToastLeaving] = useState(false);
+  const showBalanceToast = () => setBalanceToast(true);
   const [historyEntries, setHistoryEntries] = useState<HistoryEntry[]>(() => (
     history.map((value, index) => ({ id: `seed-${index}`, value }))
   ));
@@ -958,6 +964,17 @@ function AviatorGame() {
     }, 2700);
     return () => { window.clearTimeout(leaveTimer); window.clearTimeout(removeTimer); };
   }, [cashoutNotice]);
+
+  useEffect(() => {
+    if (!balanceToast) return;
+    setBalanceToastLeaving(false);
+    const leaveTimer = window.setTimeout(() => setBalanceToastLeaving(true), 2200);
+    const removeTimer = window.setTimeout(() => {
+      setBalanceToast(false);
+      setBalanceToastLeaving(false);
+    }, 2700);
+    return () => { window.clearTimeout(leaveTimer); window.clearTimeout(removeTimer); };
+  }, [balanceToast]);
 
   useEffect(() => {
     setRoundDetailsOpen(false);
@@ -1123,6 +1140,12 @@ function AviatorGame() {
             <button aria-label="Dismiss cash out notification" onClick={() => setCashoutNotice(null)}>×</button>
           </div>
         )}
+        {balanceToast && (
+          <div className={`balance-toast${balanceToastLeaving ? " leaving" : ""}`} role="alert">
+            <span>Your balance is insufficient, please recharge in time. (Error:33)</span>
+            <button aria-label="Dismiss insufficient balance notification" onClick={() => setBalanceToast(false)}>×</button>
+          </div>
+        )}
       </header>
 
       <div className="game-layout">
@@ -1268,8 +1291,8 @@ function AviatorGame() {
             />
           )}
           <div className="bet-panels">
-            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} />
-            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} />
+            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} onInsufficientBalance={showBalanceToast} />
+            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} onInsufficientBalance={showBalanceToast} />
           </div>
         </section>
       </div>
