@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, ChevronUp, Copy, Gamepad2, HelpCircle, History, Languages, Laptop, LockKeyhole, Menu, Minus, Music2, Plus, Server, ShieldCheck, Sparkles, UserRound, Volume2, X } from "lucide-react";
 import { startMusic, stopMusic, playStart, playFlewAway } from "../lib/aviator-sound";
 import { crashConfig, watchCrashConfig } from "../lib/crash-config";
+import { debitBet } from "../lib/bet-balance";
 
 import loadingAsset from "../assets/aviator/loading.png";
 import wordmarkAsset from "../assets/aviator/wordmark.svg";
@@ -480,23 +481,29 @@ function AvatarPicker({
   );
 }
 
-function BetPanel({
+export function BetPanel({
   initial,
   phase,
   multiplier,
   round,
   onCashOut,
+  onReserveBet,
+  onRefundBet,
 }: {
   initial: number;
   phase: FlightPhase;
   multiplier: number;
   round: number;
   onCashOut: (notice: CashoutNotice) => void;
+  onReserveBet: (amount: number) => boolean;
+  onRefundBet: (amount: number) => void;
 }) {
   const [amount, setAmount] = useState(initial);
   const [placed, setPlaced] = useState(false);
   const [waitingForNextRound, setWaitingForNextRound] = useState(false);
   const [cashoutResult, setCashoutResult] = useState<CashoutNotice | null>(null);
+  const reservedStake = useRef<number | null>(null);
+  const [betError, setBetError] = useState("");
   const [mode, setMode] = useState<"Bet" | "Auto">("Bet");
   const [autoCashOut, setAutoCashOut] = useState(false);
   const [autoTarget, setAutoTarget] = useState(1.1);
@@ -525,25 +532,22 @@ function BetPanel({
   const isFlyingBet = phase === "flying" && placed && !waitingForNextRound && !cashoutResult;
   const isLost = phase === "crashed" && placed && !waitingForNextRound && !cashoutResult;
   const payout = cashoutResult?.amount ?? Number((amount * multiplier).toFixed(2));
-  const stakeLocked = phase !== "intro" || placed || waitingForNextRound;
+  const stakeLocked = placed || waitingForNextRound;
   const buttonClass = [
     "main-bet",
     phase === "intro" && placed ? "loading" : "",
     isFlyingBet ? "cash-out-action" : "",
     waitingForNextRound ? "waiting-next" : "",
-    cashoutResult ? "cashed-out" : "",
     isLost ? "lost" : "",
   ].filter(Boolean).join(" ");
   const buttonLabel = phase === "intro"
       ? (placed ? "CANCEL" : "BET")
     : isFlyingBet
       ? "CASH OUT"
-      : cashoutResult
-        ? "CASHED OUT"
-        : isLost
+      : isLost
           ? "LOST"
           : "BET";
-  const buttonAmount = isFlyingBet || cashoutResult
+  const buttonAmount = isFlyingBet
     ? `${money(payout)} INR`
     : isLost
       ? "0.00 INR"
@@ -559,6 +563,8 @@ function BetPanel({
     setPlaced(waitingForNextRound);
     setWaitingForNextRound(false);
     setCashoutResult(null);
+    if (!waitingForNextRound) reservedStake.current = null;
+    setBetError("");
   }, [round]);
 
   useEffect(() => {
@@ -571,25 +577,47 @@ function BetPanel({
   }, [autoOpen]);
 
   const handleMainBet = () => {
-    if (phase === "intro") {
-      if (waitingForNextRound) {
-        setWaitingForNextRound(false);
-      } else {
-        setPlaced((value) => !value);
+    setBetError("");
+    const cancelBet = () => {
+      const stake = reservedStake.current;
+      if (stake !== null) {
+        reservedStake.current = null;
+        onRefundBet(stake);
       }
+      setPlaced(false);
+      setWaitingForNextRound(false);
+    };
+    const reserveBet = () => {
+      if (reservedStake.current !== null) return false;
+      if (!onReserveBet(amount)) {
+        setBetError("Insufficient balance");
+        return false;
+      }
+      reservedStake.current = amount;
+      setCashoutResult(null);
+      return true;
+    };
+    if (phase === "intro") {
+      if (placed || waitingForNextRound) cancelBet();
+      else if (reserveBet()) setPlaced(true);
       return;
     }
     if (isFlyingBet) {
+      const stake = reservedStake.current;
+      if (stake === null) return;
+      reservedStake.current = null;
       const notice = {
-        amount: Number((amount * multiplier).toFixed(2)),
+        amount: Number((stake * multiplier).toFixed(2)),
         multiplier: Number(multiplier.toFixed(2)),
       };
       setCashoutResult(notice);
+      setPlaced(false);
       onCashOut(notice);
       return;
     }
     if (phase === "flying") {
-      setWaitingForNextRound((value) => !value);
+      if (waitingForNextRound) cancelBet();
+      else if (reserveBet()) setWaitingForNextRound(true);
     }
   };
 
@@ -598,11 +626,15 @@ function BetPanel({
   useEffect(() => {
     if (!autoCashOut || !isFlyingBet) return;
     if (multiplier < autoTarget) return;
+    const stake = reservedStake.current;
+    if (stake === null) return;
+    reservedStake.current = null;
     const notice = {
-      amount: Number((amount * autoTarget).toFixed(2)),
+      amount: Number((stake * autoTarget).toFixed(2)),
       multiplier: Number(autoTarget.toFixed(2)),
     };
     setCashoutResult(notice);
+    setPlaced(false);
     onCashOut(notice);
   }, [autoCashOut, isFlyingBet, multiplier, autoTarget, amount, onCashOut]);
 
@@ -632,7 +664,7 @@ function BetPanel({
             <span className="waiting-label">WAITING FOR NEXT ROUND</span>
             <button
               className={buttonClass}
-              disabled={phase === "crashed" ? !waitingForNextRound : Boolean(cashoutResult)}
+              disabled={phase === "crashed"}
               onClick={handleMainBet}
             >
               <span>CANCEL</span>
@@ -641,7 +673,7 @@ function BetPanel({
         ) : (
           <button
             className={buttonClass}
-            disabled={phase === "crashed" ? !waitingForNextRound : Boolean(cashoutResult)}
+            disabled={phase === "crashed"}
             onClick={handleMainBet}
           >
             <span>{buttonLabel}</span>
@@ -649,6 +681,7 @@ function BetPanel({
           </button>
         )}
       </div>
+      {betError && <div role="alert" className="text-destructive text-center text-sm">{betError}</div>}
       {mode === "Auto" && (
         <div className="auto-row">
           <div className="auto-cashout">
@@ -660,7 +693,7 @@ function BetPanel({
               onClick={() => {
                 const next = !autoCashOut;
                 setAutoCashOut(next);
-                if (next && !placed && !waitingForNextRound && !cashoutResult) handleMainBet();
+                if (next && !placed && !waitingForNextRound) handleMainBet();
               }}
             ><i /></button>
             <strong>
@@ -780,6 +813,23 @@ function BetPanel({
 }
 
 function AviatorGame() {
+  const [balance, setBalance] = useState(4077);
+  const balanceRef = useRef(4077);
+  const reserveBet = (stake: number) => {
+    const next = debitBet(balanceRef.current, stake);
+    if (next === null) return false;
+    balanceRef.current = next;
+    setBalance(next);
+    return true;
+  };
+  const refundBet = (amount: number) => {
+    balanceRef.current = Math.round((balanceRef.current + amount) * 100) / 100;
+    setBalance(balanceRef.current);
+  };
+  const handleCashOut = (notice: CashoutNotice) => {
+    refundBet(notice.amount);
+    setCashoutNotice(notice);
+  };
   const [progress, setProgress] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [multiplier, setMultiplier] = useState(1);
@@ -1014,7 +1064,7 @@ function AviatorGame() {
       <header className="topbar">
         <img src={wordmarkAsset} alt="Aviator" className="brand" />
         <button className="help" onClick={() => setHelpOpen(true)}><HelpCircle /> <span>How to play?</span></button>
-        <div className="balance"><strong>4,077</strong> INR</div>
+        <div className="balance"><strong>{money(balance)}</strong> INR</div>
         <button className="menu-button" aria-label="Open menu" onClick={() => setMenuOpen(!menuOpen)}><Menu /></button>
         {menuOpen && (
           <div className="menu-popover" role="dialog" aria-label="Game menu" onClick={(event) => event.stopPropagation()}>
@@ -1218,8 +1268,8 @@ function AviatorGame() {
             />
           )}
           <div className="bet-panels">
-            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={setCashoutNotice} />
-            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={setCashoutNotice} />
+            <BetPanel initial={90} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} />
+            <BetPanel initial={10} phase={phase} multiplier={multiplier} round={round} onCashOut={handleCashOut} onReserveBet={reserveBet} onRefundBet={refundBet} />
           </div>
         </section>
       </div>
